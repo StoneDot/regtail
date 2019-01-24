@@ -1,0 +1,13 @@
+[package]
+name = "regtail"
+version = "0.1.0"
+authors = ["Hiroaki Goto <goto.inct@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+notify = "4.0.0"
+structopt = "0.2"
+walkdir = "2"
+regex = "1"
+lazy_static = "1.2.0"
+pathdiff = "0.1.0"
