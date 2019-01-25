@@ -32,7 +32,7 @@ lazy_static! {
 pub struct Opt {
     /// Lines to show
     #[structopt(short = "l", long = "lines", default_value = "10")]
-    pub lines: usize,
+    pub lines: u64,
 
     /// Enable recursive watch
     #[structopt(short = "r", long = "recursive")]
