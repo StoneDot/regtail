@@ -24,124 +24,172 @@ use std::path::PathBuf;
 const BUFFER_SIZE: usize = 8 * 1024;
 const BUFFER_LEN: u64 = BUFFER_SIZE as u64;
 
-fn tail_start_position(file: &mut File, tail_count: usize) -> Result<u64, io::Error> {
-    let mut buffer = [0u8; BUFFER_SIZE];
+pub trait Length {
+    fn len(self: &Self) -> io::Result<u64>;
+}
 
-    // Read file from tail requires file size
-    let meta = file.metadata()?;
+impl Length for std::fs::File {
+    fn len(self: &Self) -> io::Result<u64> {
+        let meta = self.metadata()?;
+        Ok(meta.len())
+    }
+}
 
-    // Empty file consideration
-    if meta.len() == 0 {
-        return Ok(0);
+pub struct SeekableReader<T> where
+    T: Read + Seek + Length {
+    reader: T,
+    seek_pos: u64,
+}
+
+impl SeekableReader<std::fs::File> {
+    pub fn from_file(mut file: File) -> io::Result<SeekableReader<File>> {
+        let pos = file.seek(SeekFrom::Current(0))?;
+        Ok(SeekableReader {
+            reader: file,
+            seek_pos: pos,
+        })
+    }
+}
+
+impl<T> SeekableReader<T> where
+    T: Read + Seek + Length {
+    pub fn read(&mut self, mut buf: &mut [u8]) -> io::Result<usize> {
+        self.reader.read(&mut buf)
     }
 
-    // Skip EOS
-    let end_index = meta.len() - 1;
-    if end_index <= 0 {
-        return Ok(0);
+    pub fn seek(mut self: &mut Self, seek: SeekFrom) -> io::Result<u64> {
+        self.seek_pos = self.reader.seek(seek)?;
+        Ok(self.seek_pos)
     }
 
-    // Seek position should be a multiple of BUFFER_SIZE because of read efficiency
-    let mut size = end_index % BUFFER_LEN;
-    if size == 0 {
-        size = BUFFER_LEN;
-    }
-    let mut start_index = max(0, end_index - size);
-    assert_eq!(0, start_index % BUFFER_LEN);
-
-    // Read to buffer
-    file.seek(SeekFrom::Start(start_index))?;
-    let mut read_size = file.read(&mut buffer)?;
-
-    let mut target = &buffer[..read_size];
-
-    // Skip last line ending
-    if let Some(&x) = target.last() {
-        if x == b'\n' {
-            target = &target[..read_size - 1];
-        }
+    pub fn current_seek(self: &Self) -> u64 {
+        self.seek_pos
     }
 
-    let mut eol_count = 0;
-    loop {
-        // Count end of lines
-        for (i, &byte) in target.iter().enumerate().rev() {
-            if byte == b'\n' {
-                eol_count += 1;
-                if eol_count >= tail_count {
-                    return Ok(start_index + i as u64 + 1);
-                }
-            }
-        }
+    pub fn len(self: &Self) -> Result<u64, io::Error> {
+        self.reader.len()
+    }
 
-        // End check
-        if start_index == 0 {
+    fn tail_start_position(self: &mut SeekableReader<T>, tail_count: usize) -> io::Result<u64> {
+        let mut buffer = [0u8; BUFFER_SIZE];
+
+        // Read file from tail requires file size
+        let len = self.len()?;
+
+        // Empty file consideration
+        if len == 0 {
             return Ok(0);
         }
 
-        // Read file data into buffer
-        start_index = start_index - BUFFER_LEN;
-        file.seek(SeekFrom::Start(start_index))?;
-        read_size = file.read(&mut buffer)?;
-        target = &buffer[..read_size];
-    }
-}
+        // Skip EOS
+        let end_index = len - 1;
+        if end_index <= 0 {
+            return Ok(0);
+        }
 
-pub fn handle_shrink(file: &mut File, offset: u64) -> Result<bool, std::io::Error> {
-    let file_size = file.metadata()?.len();
-    if file_size < offset {
-        file.seek(SeekFrom::Start(0))?;
-        Ok(true)
-    } else {
-        Ok(false)
-    }
-}
+        // Seek position should be a multiple of BUFFER_SIZE because of read efficiency
+        let mut size = end_index % BUFFER_LEN;
+        if size == 0 {
+            size = BUFFER_LEN;
+        }
+        let mut start_index = max(0, end_index - size);
+        assert_eq!(0, start_index % BUFFER_LEN);
 
-fn seek_to_initial_position(mut file: &mut File, offset: u64) -> Result<u64, std::io::Error> {
-    // Shrink handling
-    if handle_shrink(&mut file, offset)? {
-        return Ok(0);
-    }
+        // Read to buffer
+        self.seek(SeekFrom::Start(start_index))?;
+        let mut read_size = self.read(&mut buffer)?;
 
-    // Seek to target position
-    file.seek(SeekFrom::Start(offset))
-}
+        let mut target = &buffer[..read_size];
 
-pub fn dump_to_tail(file: &mut File) -> Result<u64, std::io::Error> {
-    let mut buffer = [0; BUFFER_SIZE];
-    let mut offset = file.seek(SeekFrom::Current(0))?;
-    let initial_size = (BUFFER_LEN - (offset % BUFFER_LEN)) as usize;
-    let mut target = &mut buffer[..initial_size];
+        // Skip last line ending
+        if let Some(&x) = target.last() {
+            if x == b'\n' {
+                target = &target[..read_size - 1];
+            }
+        }
 
-    // Read initial data
-    let read_size = file.read(&mut target)?;
-    target = &mut target[..read_size];
-    offset += read_size as u64;
-
-    if read_size == 0 {
-        return Ok(offset);
-    } else {
-        let stdout = io::stdout();
-        let mut lock = stdout.lock();
+        let mut eol_count = 0;
         loop {
-            // Write to stdio
-            lock.write(&target)?;
+            // Count end of lines
+            for (i, &byte) in target.iter().enumerate().rev() {
+                if byte == b'\n' {
+                    eol_count += 1;
+                    if eol_count >= tail_count {
+                        return Ok(start_index + i as u64 + 1);
+                    }
+                }
+            }
 
-            // Read additional data
-            let read_size = file.read(&mut buffer)?;
-            target = &mut buffer[..read_size];
-            offset += read_size as u64;
-            if read_size == 0 {
-                return Ok(offset);
+            // End check
+            if start_index == 0 {
+                return Ok(0);
+            }
+
+            // Read file data into buffer
+            start_index = start_index - BUFFER_LEN;
+            self.seek(SeekFrom::Start(start_index))?;
+            read_size = self.read(&mut buffer)?;
+            target = &buffer[..read_size];
+        }
+    }
+
+    pub fn handle_shrink(self: &mut SeekableReader<T>, offset: u64) -> Result<bool, std::io::Error> {
+        let len = self.len()?;
+        if len < offset {
+            self.seek(SeekFrom::Start(0))?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn seek_to_initial_position(self: &mut SeekableReader<T>, offset: u64) -> Result<u64, std::io::Error> {
+        // Shrink handling
+        if self.handle_shrink(offset)? {
+            return Ok(0);
+        }
+
+        // Seek to target position
+        self.seek(SeekFrom::Start(offset))
+    }
+
+    pub fn dump_to_tail(self: &mut SeekableReader<T>) -> Result<u64, std::io::Error> {
+        let mut buffer = [0; BUFFER_SIZE];
+        let mut offset = self.current_seek();
+        let initial_size = (BUFFER_LEN - (offset % BUFFER_LEN)) as usize;
+        let mut target = &mut buffer[..initial_size];
+
+        // Read initial data
+        let read_size = self.read(&mut target)?;
+        target = &mut target[..read_size];
+        offset += read_size as u64;
+
+        if read_size == 0 {
+            return Ok(offset);
+        } else {
+            let stdout = io::stdout();
+            let mut lock = stdout.lock();
+            loop {
+                // Write to stdio
+                lock.write(&target)?;
+
+                // Read additional data
+                let read_size = self.read(&mut buffer)?;
+                target = &mut buffer[..read_size];
+                offset += read_size as u64;
+                if read_size == 0 {
+                    return Ok(offset);
+                }
             }
         }
     }
 }
 
-pub fn tail(path: &PathBuf, tail_count: usize) -> Result<File, std::io::Error> {
-    let mut file = File::open(path)?;
-    let offset = tail_start_position(&mut file, tail_count)?;
-    seek_to_initial_position(&mut file, offset)?;
-    dump_to_tail(&mut file)?;
-    Ok(file)
+pub fn tail(path: &PathBuf, tail_count: usize) -> Result<SeekableReader<File>, std::io::Error> {
+    let file = File::open(path)?;
+    let mut reader = SeekableReader::from_file(file)?;
+    let offset = reader.tail_start_position(tail_count)?;
+    reader.seek_to_initial_position(offset)?;
+    reader.dump_to_tail()?;
+    Ok(reader)
 }
