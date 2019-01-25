@@ -29,7 +29,7 @@ use super::tail::{Length, SeekableReader, tail};
 pub struct DirectoryWatcher<T> where
     T: std::io::Read + std::io::Seek + Length {
     filter: PathFilter,
-    current_dir: PathBuf,
+    current_dir: Option<PathBuf>,
     selected_file_path: Option<PathBuf>,
     file_map: HashMap<PathBuf, SeekableReader<T>>,
     renaming_map: HashMap<u32, SeekableReader<T>>,
@@ -48,8 +48,8 @@ impl DirectoryWatcher<std::fs::File> {
 
         // Retrieve current directory
         let current_dir = match std::env::current_dir() {
-            Ok(dir) => dir,
-            Err(_) => return Err(1),
+            Ok(dir) => Some(dir),
+            Err(_) => None,
         };
 
         Ok(DirectoryWatcher {
@@ -64,14 +64,13 @@ impl DirectoryWatcher<std::fs::File> {
 
 impl DirectoryWatcher<File> {
     fn print_file_path(self: &DirectoryWatcher<File>, path: &PathBuf) {
-        match diff_paths(&path, &self.current_dir) {
-            Some(relative_path) => {
-                println!("\n==> {} <==", relative_path.display())
+        if let Some(current_dir) = &self.current_dir {
+            if let Some(relative_path) = diff_paths(&path, &current_dir) {
+                println!("\n==> {} <==", relative_path.display());
+                return;
             }
-            None => {
-                println!("\n==> {} <==", path.display())
-            }
-        };
+        }
+        println!("\n==> {} <==", path.display())
     }
 
     fn change_selected_file(self: &mut DirectoryWatcher<File>, path: &PathBuf) {
