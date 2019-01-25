@@ -69,7 +69,7 @@ impl<T> SeekableReader<T> where
         self.reader.len()
     }
 
-    fn tail_start_position(self: &mut SeekableReader<T>, tail_count: usize) -> Result<u64> {
+    fn tail_start_position(self: &mut SeekableReader<T>, tail_count: u64) -> Result<u64> {
         let mut buffer = [0u8; BUFFER_SIZE];
 
         // Read file from tail requires file size
@@ -184,7 +184,7 @@ impl<T> SeekableReader<T> where
     }
 }
 
-pub fn tail(path: &PathBuf, tail_count: usize) -> Result<SeekableReader<File>> {
+pub fn tail(path: &PathBuf, tail_count: u64) -> Result<SeekableReader<File>> {
     let file = File::open(path)?;
     let mut reader = SeekableReader::from_file(file)?;
     let offset = reader.tail_start_position(tail_count)?;
