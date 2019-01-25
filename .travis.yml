@@ -9,8 +9,8 @@ matrix:
   - rust: nightly
   fast_finish: true
 script:
-  - cargo build --release --verbose --all
   - cargo test --verbose --all
+before_deploy: cargo build --release --verbose --all
 deploy:
   provider: releases
   api_key:
