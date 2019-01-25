@@ -16,27 +16,27 @@
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{Seek, SeekFrom};
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
 
 use notify::{Error as NotifyError, op::Op, raw_watcher, RawEvent, Watcher};
 use pathdiff::diff_paths;
 
-use super::Opt;
 use super::filter::PathFilter;
-use super::tail::{tail, dump_to_tail, handle_shrink};
+use super::Opt;
+use super::tail::{Length, SeekableReader, tail};
 
-pub struct DirectoryWatcher {
+pub struct DirectoryWatcher<T> where
+    T: std::io::Read + std::io::Seek + Length {
     filter: PathFilter,
     current_dir: PathBuf,
-    current_path: Option<PathBuf>,
-    file_map: HashMap<PathBuf, File>,
-    renaming_map: HashMap<u32, File>,
+    selected_file_path: Option<PathBuf>,
+    file_map: HashMap<PathBuf, SeekableReader<T>>,
+    renaming_map: HashMap<u32, SeekableReader<T>>,
 }
 
-impl DirectoryWatcher {
-    pub fn new(opt: &Opt) -> Result<DirectoryWatcher, i32> {
+impl DirectoryWatcher<std::fs::File> {
+    pub fn new(opt: &Opt) -> Result<DirectoryWatcher<std::fs::File>, i32> {
         // Check whether supplied path is a directory
         if !opt.watch_path_is_dir() {
             eprintln!("supplied path is not a directory");
@@ -55,13 +55,15 @@ impl DirectoryWatcher {
         Ok(DirectoryWatcher {
             filter,
             current_dir,
-            current_path: None,
+            selected_file_path: None,
             file_map: HashMap::new(),
             renaming_map: HashMap::new(),
         })
     }
+}
 
-    fn print_file_path(self: &DirectoryWatcher, path: &PathBuf) {
+impl DirectoryWatcher<File> {
+    fn print_file_path(self: &DirectoryWatcher<File>, path: &PathBuf) {
         match diff_paths(&path, &self.current_dir) {
             Some(relative_path) => {
                 println!("\n==> {} <==", relative_path.display())
@@ -72,42 +74,43 @@ impl DirectoryWatcher {
         };
     }
 
-    fn change_current_path(self: &mut DirectoryWatcher, path: &PathBuf) {
+    fn change_selected_file(self: &mut DirectoryWatcher<File>, path: &PathBuf) {
         // Handle current path change
-        if let Some(last_path) = &self.current_path {
+        if let Some(last_path) = &self.selected_file_path {
             if last_path != path {
                 self.print_file_path(&path);
-                self.current_path = Some(path.to_owned());
+                self.selected_file_path = Some(path.to_owned());
             }
         }
     }
 
-    fn handle_write(self: &mut DirectoryWatcher, path: PathBuf) -> std::io::Result<()> {
+    fn handle_write(self: &mut DirectoryWatcher<File>, path: PathBuf) -> std::io::Result<()> {
         // Just ignore if the path is not match regex
         if !self.filter.match_path(&&path) {
             return Ok(());
         }
 
-        self.change_current_path(&path);
+        self.change_selected_file(&path);
 
         match self.file_map.get_mut(&path) {
-            Some(mut file) => {
+            Some(reader) => {
                 // Shrink handling
-                let offset = file.seek(SeekFrom::Current(0))?;
-                handle_shrink(&mut file, offset)?;
-                dump_to_tail(&mut file)?;
+                let offset = reader.current_seek();
+                reader.handle_shrink(offset)?;
+                reader.dump_to_tail()?;
             }
             None => {
                 // Supplied path is not opened currently
-                let mut file = File::open(&path)?;
-                dump_to_tail(&mut file)?;
-                self.file_map.insert(path, file);
+                let file = File::open(&path)?;
+                let mut reader = SeekableReader::from_file(file)?;
+                reader.dump_to_tail()?;
+                self.file_map.insert(path, reader);
             }
         }
         Ok(())
     }
 
-    fn handle_create(self: &mut DirectoryWatcher, path: PathBuf) -> std::io::Result<()> {
+    fn handle_create(self: &mut DirectoryWatcher<File>, path: PathBuf) -> std::io::Result<()> {
         // Just ignore if the path is not match regex
         if !self.filter.match_path(&path) {
             return Ok(());
@@ -115,14 +118,15 @@ impl DirectoryWatcher {
 
         // Newly created file should be dumped first and watched
         self.file_map.remove(&path);
-        let mut file = File::open(&path)?;
-        self.change_current_path(&path);
-        dump_to_tail(&mut file)?;
-        self.file_map.insert(path, file);
+        let file = File::open(&path)?;
+        let mut reader = SeekableReader::from_file(file)?;
+        self.change_selected_file(&path);
+        reader.dump_to_tail()?;
+        self.file_map.insert(path, reader);
         Ok(())
     }
 
-    fn handle_rename(self: &mut DirectoryWatcher, path: PathBuf, cookie: Option<u32>) {
+    fn handle_rename(self: &mut DirectoryWatcher<File>, path: PathBuf, cookie: Option<u32>) {
         match self.renaming_map.remove(&cookie.unwrap()) {
             Some(file) => {
                 // Just ignore if the new path is not match regex
@@ -142,19 +146,19 @@ impl DirectoryWatcher {
         }
     }
 
-    pub fn follow_dir(self: &mut DirectoryWatcher, opt: &Opt) -> Result<i32, NotifyError> {
+    pub fn follow_dir(self: &mut DirectoryWatcher<File>, opt: &Opt) -> Result<i32, NotifyError> {
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx)?;
 
         for path in self.filter.filtered_files(&opt) {
-            if self.current_path.is_some() {
+            if self.selected_file_path.is_some() {
                 println!();
             }
             println!("==> {} <==", path.display());
-            let file = tail(&PathBuf::from(&path), opt.lines)?;
+            let reader = tail(&PathBuf::from(&path), opt.lines)?;
             let canonical_path = path.canonicalize()?;
-            self.file_map.insert(canonical_path.to_owned(), file);
-            self.current_path = Some(canonical_path);
+            self.file_map.insert(canonical_path.to_owned(), reader);
+            self.selected_file_path = Some(canonical_path);
         }
 
         let watch_path = opt.watch_path();
