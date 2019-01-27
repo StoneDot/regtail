@@ -16,7 +16,7 @@
 
 use std::cmp::max;
 use std::fs::File;
-use std::io::{self, Read, Seek, SeekFrom, Write, Result};
+use std::io::{self, Read, Result, Seek, SeekFrom, Stdout, Write};
 use std::path::PathBuf;
 
 // Max recommended buffer size is 128kB
@@ -34,26 +34,35 @@ impl Length for std::fs::File {
     }
 }
 
-pub struct SeekableReader<T> where
-    T: Read + Seek + Length {
+pub struct SeekableReader<T, U> where
+    T: Read + Seek + Length,
+    U: Write {
     reader: T,
+    writer: U,
     seek_pos: u64,
 }
 
-impl SeekableReader<std::fs::File> {
-    pub fn from_file(mut file: File) -> Result<SeekableReader<File>> {
+impl SeekableReader<std::fs::File, io::BufWriter<Stdout>> {
+    pub fn from_file(mut file: File) -> Result<SeekableReader<File, io::BufWriter<Stdout>>> {
         let pos = file.seek(SeekFrom::Current(0))?;
+        let writer = io::BufWriter::new(io::stdout());
         Ok(SeekableReader {
             reader: file,
+            writer,
             seek_pos: pos,
         })
     }
 }
 
-impl<T> SeekableReader<T> where
-    T: Read + Seek + Length {
+impl<T, U> SeekableReader<T, U> where
+    T: Read + Seek + Length,
+    U: Write {
     pub fn read(&mut self, mut buf: &mut [u8]) -> Result<usize> {
         self.reader.read(&mut buf)
+    }
+
+    pub fn write(&mut self, mut buf: &[u8]) -> Result<usize> {
+        self.writer.write(&mut buf)
     }
 
     pub fn seek(mut self: &mut Self, seek: SeekFrom) -> Result<u64> {
@@ -69,7 +78,7 @@ impl<T> SeekableReader<T> where
         self.reader.len()
     }
 
-    fn tail_start_position(self: &mut SeekableReader<T>, tail_count: u64) -> Result<u64> {
+    fn tail_start_position(self: &mut Self, tail_count: u64) -> Result<u64> {
         let mut buffer = [0u8; BUFFER_SIZE];
 
         // Read file from tail requires file size
@@ -132,7 +141,7 @@ impl<T> SeekableReader<T> where
         }
     }
 
-    pub fn handle_shrink(self: &mut SeekableReader<T>, offset: u64) -> Result<bool> {
+    pub fn handle_shrink(self: &mut Self, offset: u64) -> Result<bool> {
         let len = self.len()?;
         if len < offset {
             self.seek(SeekFrom::Start(0))?;
@@ -142,7 +151,7 @@ impl<T> SeekableReader<T> where
         }
     }
 
-    fn seek_with_shrink_handling(self: &mut SeekableReader<T>, offset: u64) -> Result<u64> {
+    fn seek_with_shrink_handling(self: &mut Self, offset: u64) -> Result<u64> {
         // Shrink handling
         if self.handle_shrink(offset)? {
             return Ok(0);
@@ -152,7 +161,7 @@ impl<T> SeekableReader<T> where
         self.seek(SeekFrom::Start(offset))
     }
 
-    pub fn dump_to_tail(self: &mut SeekableReader<T>) -> Result<u64> {
+    pub fn dump_to_tail(self: &mut Self) -> Result<u64> {
         let mut buffer = [0; BUFFER_SIZE];
         let mut offset = self.current_seek();
         let initial_size = (BUFFER_LEN - (offset % BUFFER_LEN)) as usize;
@@ -166,11 +175,9 @@ impl<T> SeekableReader<T> where
         if read_size == 0 {
             return Ok(offset);
         } else {
-            let stdout = io::stdout();
-            let mut lock = stdout.lock();
             loop {
                 // Write to stdio
-                lock.write(&target)?;
+                self.write(&target)?;
 
                 // Read additional data
                 let read_size = self.read(&mut buffer)?;
@@ -184,7 +191,7 @@ impl<T> SeekableReader<T> where
     }
 }
 
-pub fn tail(path: &PathBuf, tail_count: u64) -> Result<SeekableReader<File>> {
+pub fn tail(path: &PathBuf, tail_count: u64) -> Result<SeekableReader<File, io::BufWriter<Stdout>>> {
     let file = File::open(path)?;
     let mut reader = SeekableReader::from_file(file)?;
     let offset = reader.tail_start_position(tail_count)?;
