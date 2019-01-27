@@ -65,10 +65,7 @@ impl Opt {
     }
 
     pub fn watch_path_is_dir(self: &Opt) -> bool {
-        if let Some(path) = &self.path {
-            return path.is_dir();
-        }
-        true
+        self.watch_path().is_dir()
     }
 
     pub fn depth(self: &Opt) -> Option<usize> {
