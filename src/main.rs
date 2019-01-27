@@ -27,38 +27,38 @@ mod opt;
 mod watcher;
 mod tail;
 
-fn follow(opt: &Opt) -> i32 {
-    let mut watcher = match DirectoryWatcher::new(&opt) {
-        Ok(watcher) => watcher,
-        Err(exit_status) => return exit_status,
-    };
-    match watcher.follow_dir(&opt) {
-        Ok(exit_status) => {
-            return exit_status;
-        }
-        Err(error) => {
-            match error {
-                notify::Error::Generic(string) => {
-                    eprintln!("generic error: {}", string);
-                }
-                notify::Error::Io(error) => {
-                    eprintln!("io error: {}", error);
-                }
-                notify::Error::PathNotFound => {
-                    eprintln!("path not found");
-                }
-                notify::Error::WatchNotFound => {
-                    eprintln!("watch not found");
-                }
+const EX_ERR: i32 = 1;
+const EX_NOINPUT: i32 = 66;
+const EX_SOFTWARE: i32 = 70;
+const EX_IOERR: i32 = 74;
+
+fn follow(opt: &Opt) -> Result<(), i32> {
+    let mut watcher = DirectoryWatcher::new(&opt)?;
+    watcher.follow_dir(&opt).map_err(|error| {
+        match error {
+            notify::Error::Generic(string) => {
+                eprintln!("generic error: {}", string);
+                EX_ERR
             }
-            return 1;
+            notify::Error::Io(error) => {
+                eprintln!("io error: {}", error);
+                EX_IOERR
+            }
+            notify::Error::PathNotFound => {
+                eprintln!("path not found");
+                EX_NOINPUT
+            }
+            notify::Error::WatchNotFound => {
+                eprintln!("watch not found");
+                EX_SOFTWARE
+            }
         }
-    }
+    })
 }
 
 fn app() -> i32 {
     let opt = Opt::from_args();
-    follow(&opt)
+    follow(&opt).err().unwrap_or(0)
 }
 
 fn main() {
