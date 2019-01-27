@@ -145,7 +145,7 @@ impl DirectoryWatcher<File> {
         }
     }
 
-    pub fn follow_dir(self: &mut DirectoryWatcher<File>, opt: &Opt) -> Result<i32, NotifyError> {
+    pub fn follow_dir(self: &mut DirectoryWatcher<File>, opt: &Opt) -> Result<(), NotifyError> {
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx)?;
 
@@ -178,13 +178,11 @@ impl DirectoryWatcher<File> {
                     }
                 }
                 Ok(event) => {
-                    eprintln!("broken event: {:?}", event);
-                    return Ok(1);
+                    return Err(NotifyError::Generic(format!("broken event: {:?}", event)));
                 }
                 Err(e) => {
                     if e == std::sync::mpsc::RecvTimeoutError::Disconnected {
-                        eprintln!("watch error: {:?}", e);
-                        return Ok(1);
+                        return Err(NotifyError::Generic(format!("watch error: {:?}", e)));
                     }
                 }
             }
