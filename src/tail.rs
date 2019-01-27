@@ -142,7 +142,7 @@ impl<T> SeekableReader<T> where
         }
     }
 
-    fn seek_to_initial_position(self: &mut SeekableReader<T>, offset: u64) -> Result<u64> {
+    fn seek_with_shrink_handling(self: &mut SeekableReader<T>, offset: u64) -> Result<u64> {
         // Shrink handling
         if self.handle_shrink(offset)? {
             return Ok(0);
@@ -188,7 +188,7 @@ pub fn tail(path: &PathBuf, tail_count: u64) -> Result<SeekableReader<File>> {
     let file = File::open(path)?;
     let mut reader = SeekableReader::from_file(file)?;
     let offset = reader.tail_start_position(tail_count)?;
-    reader.seek_to_initial_position(offset)?;
+    reader.seek_with_shrink_handling(offset)?;
     reader.dump_to_tail()?;
     Ok(reader)
 }
