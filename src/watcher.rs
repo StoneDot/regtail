@@ -16,6 +16,7 @@
 
 use std::collections::HashMap;
 use std::fs::File;
+use std::io::{BufWriter, Stdout};
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
 
@@ -26,17 +27,18 @@ use super::filter::PathFilter;
 use super::Opt;
 use super::tail::{Length, SeekableReader, tail};
 
-pub struct DirectoryWatcher<T> where
-    T: std::io::Read + std::io::Seek + Length {
+pub struct DirectoryWatcher<T, U> where
+    T: std::io::Read + std::io::Seek + Length,
+    U: std::io::Write {
     filter: PathFilter,
     current_dir: Option<PathBuf>,
     selected_file_path: Option<PathBuf>,
-    file_map: HashMap<PathBuf, SeekableReader<T>>,
-    renaming_map: HashMap<u32, SeekableReader<T>>,
+    file_map: HashMap<PathBuf, SeekableReader<T, U>>,
+    renaming_map: HashMap<u32, SeekableReader<T, U>>,
 }
 
-impl DirectoryWatcher<std::fs::File> {
-    pub fn new(opt: &Opt) -> Result<DirectoryWatcher<std::fs::File>, i32> {
+impl DirectoryWatcher<File, BufWriter<Stdout>> {
+    pub fn new(opt: &Opt) -> Result<DirectoryWatcher<File, BufWriter<Stdout>>, i32> {
         // Check whether supplied path is a directory
         if !opt.watch_path_is_dir() {
             eprintln!("supplied path is not a directory");
@@ -59,8 +61,8 @@ impl DirectoryWatcher<std::fs::File> {
     }
 }
 
-impl DirectoryWatcher<File> {
-    fn print_file_path(self: &DirectoryWatcher<File>, path: &PathBuf) {
+impl DirectoryWatcher<File, BufWriter<Stdout>> {
+    fn print_file_path(self: &Self, path: &PathBuf) {
         if let Some(current_dir) = &self.current_dir {
             if let Some(relative_path) = diff_paths(&path, &current_dir) {
                 println!("\n==> {} <==", relative_path.display());
@@ -70,7 +72,7 @@ impl DirectoryWatcher<File> {
         println!("\n==> {} <==", path.display())
     }
 
-    fn change_selected_file(self: &mut DirectoryWatcher<File>, path: &PathBuf) {
+    fn change_selected_file(self: &mut Self, path: &PathBuf) {
         // Handle current path change
         if let Some(last_path) = &self.selected_file_path {
             if last_path != path {
@@ -80,7 +82,7 @@ impl DirectoryWatcher<File> {
         }
     }
 
-    fn handle_write(self: &mut DirectoryWatcher<File>, path: PathBuf) -> std::io::Result<()> {
+    fn handle_write(self: &mut Self, path: PathBuf) -> std::io::Result<()> {
         // Just ignore if the path is not match regex
         if !self.filter.match_path(&&path) {
             return Ok(());
@@ -106,7 +108,7 @@ impl DirectoryWatcher<File> {
         Ok(())
     }
 
-    fn handle_create(self: &mut DirectoryWatcher<File>, path: PathBuf) -> std::io::Result<()> {
+    fn handle_create(self: &mut Self, path: PathBuf) -> std::io::Result<()> {
         // Just ignore if the path is not match regex
         if !self.filter.match_path(&path) {
             return Ok(());
@@ -122,7 +124,7 @@ impl DirectoryWatcher<File> {
         Ok(())
     }
 
-    fn handle_rename(self: &mut DirectoryWatcher<File>, path: PathBuf, cookie: Option<u32>) {
+    fn handle_rename(self: &mut Self, path: PathBuf, cookie: Option<u32>) {
         match self.renaming_map.remove(&cookie.unwrap()) {
             Some(file) => {
                 // Just ignore if the new path is not match regex
@@ -142,7 +144,7 @@ impl DirectoryWatcher<File> {
         }
     }
 
-    pub fn follow_dir(self: &mut DirectoryWatcher<File>, opt: &Opt) -> Result<(), NotifyError> {
+    pub fn follow_dir(self: &mut Self, opt: &Opt) -> Result<(), NotifyError> {
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx)?;
 
