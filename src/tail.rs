@@ -199,3 +199,61 @@ pub fn tail(path: &PathBuf, tail_count: u64) -> Result<SeekableReader<File, io::
     reader.dump_to_tail()?;
     Ok(reader)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+    use std::io::Result;
+
+    use super::Length;
+    use super::SeekableReader;
+
+    const CONTENT: &str = r#"line1
+line2
+line3
+line4
+line5
+"#;
+
+    const CONTENT_WITHOUT_LINE_ENDING: &str = r#"line1
+line2
+line3
+line4
+line5"#;
+
+    impl Length for Cursor<&[u8]> {
+        fn len(self: &Self) -> Result<u64> {
+            Ok(self.get_ref().len() as u64)
+        }
+    }
+
+    impl SeekableReader<Cursor<&[u8]>, &mut Vec<u8>> {
+        pub fn from_slice<'a>(reader: Cursor<&'a [u8]>, writer: &'a mut Vec<u8>)
+                              -> Result<SeekableReader<Cursor<&'a [u8]>, &'a mut Vec<u8>>> {
+            Ok(SeekableReader {
+                reader,
+                writer,
+                seek_pos: 0,
+            })
+        }
+    }
+
+    #[test]
+    fn test_dump_to_tail() {
+        let reader = Cursor::new(CONTENT.as_bytes());
+        let mut writer: Vec<u8> = Vec::new();
+        let mut target = SeekableReader::from_slice(reader, &mut writer).unwrap();
+        assert_eq!(target.dump_to_tail().is_ok(), true);
+        assert_eq!(writer, CONTENT.as_bytes());
+    }
+
+    #[test]
+    fn test_dump_to_tail_without_line_ending() {
+        let reader = Cursor::new(CONTENT_WITHOUT_LINE_ENDING.as_bytes());
+        let mut writer: Vec<u8> = Vec::new();
+        let mut target = SeekableReader::from_slice(reader, &mut writer).unwrap();
+        assert_eq!(target.dump_to_tail().is_ok(), true);
+        // TODO: Consider whether should be CONTENT or not
+        assert_eq!(writer, CONTENT_WITHOUT_LINE_ENDING.as_bytes());
+    }
+}
