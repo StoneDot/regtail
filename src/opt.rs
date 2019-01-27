@@ -61,10 +61,7 @@ impl Opt {
     }
 
     pub fn watch_path(self: &Opt) -> &PathBuf {
-        match &self.path {
-            Some(path) => path,
-            None => &CURRENT_DIR,
-        }
+        self.path.as_ref().unwrap_or(&CURRENT_DIR)
     }
 
     pub fn watch_path_is_dir(self: &Opt) -> bool {
