@@ -47,10 +47,7 @@ impl DirectoryWatcher<std::fs::File> {
         let filter = PathFilter::new(&opt)?;
 
         // Retrieve current directory
-        let current_dir = match std::env::current_dir() {
-            Ok(dir) => Some(dir),
-            Err(_) => None,
-        };
+        let current_dir = std::env::current_dir().ok();
 
         Ok(DirectoryWatcher {
             filter,
