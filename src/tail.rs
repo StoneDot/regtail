@@ -213,8 +213,8 @@ mod tests {
     use std::io::Result;
 
     use super::Length;
-    use super::TailState;
     use super::tail_from_reader;
+    use super::TailState;
 
     const CONTENT: &str = r#"line1
 line2
