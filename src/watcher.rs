@@ -25,7 +25,7 @@ use pathdiff::diff_paths;
 
 use super::filter::PathFilter;
 use super::Opt;
-use super::tail::{Length, TailState, tail};
+use super::tail::{Length, tail, TailState};
 
 pub struct DirectoryWatcher<T, U> where
     T: std::io::Read + std::io::Seek + Length,
