@@ -25,7 +25,7 @@ use pathdiff::diff_paths;
 
 use super::filter::PathFilter;
 use super::Opt;
-use super::tail::{Length, SeekableReader, tail};
+use super::tail::{Length, TailState, tail};
 
 pub struct DirectoryWatcher<T, U> where
     T: std::io::Read + std::io::Seek + Length,
@@ -33,8 +33,8 @@ pub struct DirectoryWatcher<T, U> where
     filter: PathFilter,
     current_dir: Option<PathBuf>,
     selected_file_path: Option<PathBuf>,
-    file_map: HashMap<PathBuf, SeekableReader<T, U>>,
-    renaming_map: HashMap<u32, SeekableReader<T, U>>,
+    file_map: HashMap<PathBuf, TailState<T, U>>,
+    renaming_map: HashMap<u32, TailState<T, U>>,
 }
 
 impl DirectoryWatcher<File, BufWriter<Stdout>> {
@@ -100,7 +100,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             None => {
                 // Supplied path is not opened currently
                 let file = File::open(&path)?;
-                let mut reader = SeekableReader::from_file(file)?;
+                let mut reader = TailState::from_file(file)?;
                 reader.dump_to_tail()?;
                 self.file_map.insert(path, reader);
             }
@@ -117,7 +117,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         // Newly created file should be dumped first and watched
         self.file_map.remove(&path);
         let file = File::open(&path)?;
-        let mut reader = SeekableReader::from_file(file)?;
+        let mut reader = TailState::from_file(file)?;
         self.change_selected_file(&path);
         reader.dump_to_tail()?;
         self.file_map.insert(path, reader);
