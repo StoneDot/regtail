@@ -191,13 +191,20 @@ impl<T, U> SeekableReader<T, U> where
     }
 }
 
-pub fn tail(path: &PathBuf, tail_count: u64) -> Result<SeekableReader<File, io::BufWriter<Stdout>>> {
-    let file = File::open(path)?;
-    let mut reader = SeekableReader::from_file(file)?;
+fn tail_from_reader<T, U>(mut reader: SeekableReader<T, U>, tail_count: u64)
+                          -> Result<SeekableReader<T, U>> where
+    T: Read + Seek + Length,
+    U: Write {
     let offset = reader.tail_start_position(tail_count)?;
     reader.seek_with_shrink_handling(offset)?;
     reader.dump_to_tail()?;
     Ok(reader)
+}
+
+pub fn tail(path: &PathBuf, tail_count: u64) -> Result<SeekableReader<File, io::BufWriter<Stdout>>> {
+    let file = File::open(path)?;
+    let reader = SeekableReader::from_file(file)?;
+    tail_from_reader(reader, tail_count)
 }
 
 #[cfg(test)]
@@ -207,6 +214,7 @@ mod tests {
 
     use super::Length;
     use super::SeekableReader;
+    use super::tail_from_reader;
 
     const CONTENT: &str = r#"line1
 line2
@@ -255,5 +263,26 @@ line5"#;
         assert_eq!(target.dump_to_tail().is_ok(), true);
         // TODO: Consider whether should be CONTENT or not
         assert_eq!(writer, CONTENT_WITHOUT_LINE_ENDING.as_bytes());
+    }
+
+    #[test]
+    fn test_tail() {
+        let reader = Cursor::new(CONTENT.as_bytes());
+        let mut writer: Vec<u8> = Vec::new();
+        let target = SeekableReader::from_slice(reader, &mut writer).unwrap();
+        let result = tail_from_reader(target, 1);
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(writer, "line5\n".as_bytes());
+    }
+
+    #[test]
+    fn test_tail_without_line_ending() {
+        let reader = Cursor::new(CONTENT_WITHOUT_LINE_ENDING.as_bytes());
+        let mut writer: Vec<u8> = Vec::new();
+        let target = SeekableReader::from_slice(reader, &mut writer).unwrap();
+        let result = tail_from_reader(target, 1);
+        assert_eq!(result.is_ok(), true);
+        // TODO: Consider whether should be CONTENT or not
+        assert_eq!(writer, "line5".as_bytes());
     }
 }
