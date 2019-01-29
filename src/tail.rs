@@ -34,7 +34,7 @@ impl Length for std::fs::File {
     }
 }
 
-pub struct SeekableReader<T, U> where
+pub struct TailState<T, U> where
     T: Read + Seek + Length,
     U: Write {
     reader: T,
@@ -42,11 +42,11 @@ pub struct SeekableReader<T, U> where
     seek_pos: u64,
 }
 
-impl SeekableReader<std::fs::File, io::BufWriter<Stdout>> {
-    pub fn from_file(mut file: File) -> Result<SeekableReader<File, io::BufWriter<Stdout>>> {
+impl TailState<std::fs::File, io::BufWriter<Stdout>> {
+    pub fn from_file(mut file: File) -> Result<TailState<File, io::BufWriter<Stdout>>> {
         let pos = file.seek(SeekFrom::Current(0))?;
         let writer = io::BufWriter::new(io::stdout());
-        Ok(SeekableReader {
+        Ok(TailState {
             reader: file,
             writer,
             seek_pos: pos,
@@ -54,7 +54,7 @@ impl SeekableReader<std::fs::File, io::BufWriter<Stdout>> {
     }
 }
 
-impl<T, U> SeekableReader<T, U> where
+impl<T, U> TailState<T, U> where
     T: Read + Seek + Length,
     U: Write {
     pub fn read(&mut self, mut buf: &mut [u8]) -> Result<usize> {
@@ -191,8 +191,8 @@ impl<T, U> SeekableReader<T, U> where
     }
 }
 
-fn tail_from_reader<T, U>(mut reader: SeekableReader<T, U>, tail_count: u64)
-                          -> Result<SeekableReader<T, U>> where
+fn tail_from_reader<T, U>(mut reader: TailState<T, U>, tail_count: u64)
+                          -> Result<TailState<T, U>> where
     T: Read + Seek + Length,
     U: Write {
     let offset = reader.tail_start_position(tail_count)?;
@@ -201,9 +201,9 @@ fn tail_from_reader<T, U>(mut reader: SeekableReader<T, U>, tail_count: u64)
     Ok(reader)
 }
 
-pub fn tail(path: &PathBuf, tail_count: u64) -> Result<SeekableReader<File, io::BufWriter<Stdout>>> {
+pub fn tail(path: &PathBuf, tail_count: u64) -> Result<TailState<File, io::BufWriter<Stdout>>> {
     let file = File::open(path)?;
-    let reader = SeekableReader::from_file(file)?;
+    let reader = TailState::from_file(file)?;
     tail_from_reader(reader, tail_count)
 }
 
@@ -213,7 +213,7 @@ mod tests {
     use std::io::Result;
 
     use super::Length;
-    use super::SeekableReader;
+    use super::TailState;
     use super::tail_from_reader;
 
     const CONTENT: &str = r#"line1
@@ -235,10 +235,10 @@ line5"#;
         }
     }
 
-    impl SeekableReader<Cursor<&[u8]>, &mut Vec<u8>> {
+    impl TailState<Cursor<&[u8]>, &mut Vec<u8>> {
         pub fn from_slice<'a>(reader: Cursor<&'a [u8]>, writer: &'a mut Vec<u8>)
-                              -> Result<SeekableReader<Cursor<&'a [u8]>, &'a mut Vec<u8>>> {
-            Ok(SeekableReader {
+                              -> Result<TailState<Cursor<&'a [u8]>, &'a mut Vec<u8>>> {
+            Ok(TailState {
                 reader,
                 writer,
                 seek_pos: 0,
@@ -250,7 +250,7 @@ line5"#;
     fn test_dump_to_tail() {
         let reader = Cursor::new(CONTENT.as_bytes());
         let mut writer: Vec<u8> = Vec::new();
-        let mut target = SeekableReader::from_slice(reader, &mut writer).unwrap();
+        let mut target = TailState::from_slice(reader, &mut writer).unwrap();
         assert_eq!(target.dump_to_tail().is_ok(), true);
         assert_eq!(writer, CONTENT.as_bytes());
     }
@@ -259,7 +259,7 @@ line5"#;
     fn test_dump_to_tail_without_line_ending() {
         let reader = Cursor::new(CONTENT_WITHOUT_LINE_ENDING.as_bytes());
         let mut writer: Vec<u8> = Vec::new();
-        let mut target = SeekableReader::from_slice(reader, &mut writer).unwrap();
+        let mut target = TailState::from_slice(reader, &mut writer).unwrap();
         assert_eq!(target.dump_to_tail().is_ok(), true);
         // TODO: Consider whether should be CONTENT or not
         assert_eq!(writer, CONTENT_WITHOUT_LINE_ENDING.as_bytes());
@@ -269,7 +269,7 @@ line5"#;
     fn test_tail() {
         let reader = Cursor::new(CONTENT.as_bytes());
         let mut writer: Vec<u8> = Vec::new();
-        let target = SeekableReader::from_slice(reader, &mut writer).unwrap();
+        let target = TailState::from_slice(reader, &mut writer).unwrap();
         let result = tail_from_reader(target, 1);
         assert_eq!(result.is_ok(), true);
         assert_eq!(writer, "line5\n".as_bytes());
@@ -279,7 +279,7 @@ line5"#;
     fn test_tail_without_line_ending() {
         let reader = Cursor::new(CONTENT_WITHOUT_LINE_ENDING.as_bytes());
         let mut writer: Vec<u8> = Vec::new();
-        let target = SeekableReader::from_slice(reader, &mut writer).unwrap();
+        let target = TailState::from_slice(reader, &mut writer).unwrap();
         let result = tail_from_reader(target, 1);
         assert_eq!(result.is_ok(), true);
         // TODO: Consider whether should be CONTENT or not
