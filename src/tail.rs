@@ -65,6 +65,10 @@ impl<T, U> TailState<T, U> where
         self.writer.write(&mut buf)
     }
 
+    pub fn flush(&mut self) -> Result<()> {
+        self.writer.flush()
+    }
+
     pub fn seek(mut self: &mut Self, seek: SeekFrom) -> Result<u64> {
         self.seek_pos = self.reader.seek(seek)?;
         Ok(self.seek_pos)
@@ -184,6 +188,9 @@ impl<T, U> TailState<T, U> where
                 target = &mut buffer[..read_size];
                 offset += read_size as u64;
                 if read_size == 0 {
+                    // Flush buffer
+                    self.flush()?;
+
                     return Ok(offset);
                 }
             }
