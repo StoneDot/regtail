@@ -191,20 +191,20 @@ impl<T, U> TailState<T, U> where
     }
 }
 
-fn tail_from_reader<T, U>(mut reader: TailState<T, U>, tail_count: u64)
-                          -> Result<TailState<T, U>> where
+fn tail_from_reader<T, U>(reader: &mut TailState<T, U>, tail_count: u64)
+                          -> Result<u64> where
     T: Read + Seek + Length,
     U: Write {
     let offset = reader.tail_start_position(tail_count)?;
     reader.seek_with_shrink_handling(offset)?;
-    reader.dump_to_tail()?;
-    Ok(reader)
+    reader.dump_to_tail()
 }
 
 pub fn tail(path: &PathBuf, tail_count: u64) -> Result<TailState<File, io::BufWriter<Stdout>>> {
     let file = File::open(path)?;
-    let reader = TailState::from_file(file)?;
-    tail_from_reader(reader, tail_count)
+    let mut reader = TailState::from_file(file)?;
+    let _offset = tail_from_reader(&mut reader, tail_count)?;
+    Ok(reader)
 }
 
 #[cfg(test)]
@@ -246,43 +246,51 @@ line5"#;
         }
     }
 
+    macro_rules! tail_state_test {
+        ( $variable:ident, |$target:ident, $writer:ident| $closure:expr) => {
+            {
+                let content = $variable;
+                let reader = Cursor::new(content.as_bytes());
+                let mut $writer: Vec<u8> = Vec::new();
+                let mut $target = TailState::from_slice(reader, &mut $writer).unwrap();
+                $closure;
+            }
+        };
+    }
+
     #[test]
     fn test_dump_to_tail() {
-        let reader = Cursor::new(CONTENT.as_bytes());
-        let mut writer: Vec<u8> = Vec::new();
-        let mut target = TailState::from_slice(reader, &mut writer).unwrap();
-        assert_eq!(target.dump_to_tail().is_ok(), true);
-        assert_eq!(writer, CONTENT.as_bytes());
+        tail_state_test!(CONTENT, |target, writer| {
+            assert_eq!(target.dump_to_tail().is_ok(), true);
+            assert_eq!(writer, CONTENT.as_bytes());
+        })
     }
 
     #[test]
     fn test_dump_to_tail_without_line_ending() {
-        let reader = Cursor::new(CONTENT_WITHOUT_LINE_ENDING.as_bytes());
-        let mut writer: Vec<u8> = Vec::new();
-        let mut target = TailState::from_slice(reader, &mut writer).unwrap();
-        assert_eq!(target.dump_to_tail().is_ok(), true);
-        // TODO: Consider whether should be CONTENT or not
-        assert_eq!(writer, CONTENT_WITHOUT_LINE_ENDING.as_bytes());
+        tail_state_test!(CONTENT_WITHOUT_LINE_ENDING, |target, writer| {
+            assert_eq!(target.dump_to_tail().is_ok(), true);
+            // TODO: Consider whether should be CONTENT or not
+            assert_eq!(writer, CONTENT_WITHOUT_LINE_ENDING.as_bytes());
+        })
     }
 
     #[test]
     fn test_tail() {
-        let reader = Cursor::new(CONTENT.as_bytes());
-        let mut writer: Vec<u8> = Vec::new();
-        let target = TailState::from_slice(reader, &mut writer).unwrap();
-        let result = tail_from_reader(target, 1);
-        assert_eq!(result.is_ok(), true);
-        assert_eq!(writer, "line5\n".as_bytes());
+        tail_state_test!(CONTENT, |target, writer| {
+            let result = tail_from_reader(&mut target, 1);
+            assert_eq!(result.is_ok(), true);
+            assert_eq!(writer, "line5\n".as_bytes());
+        })
     }
 
     #[test]
     fn test_tail_without_line_ending() {
-        let reader = Cursor::new(CONTENT_WITHOUT_LINE_ENDING.as_bytes());
-        let mut writer: Vec<u8> = Vec::new();
-        let target = TailState::from_slice(reader, &mut writer).unwrap();
-        let result = tail_from_reader(target, 1);
-        assert_eq!(result.is_ok(), true);
-        // TODO: Consider whether should be CONTENT or not
-        assert_eq!(writer, "line5".as_bytes());
+        tail_state_test!(CONTENT_WITHOUT_LINE_ENDING, |target, writer| {
+            let result = tail_from_reader(&mut target, 1);
+            assert_eq!(result.is_ok(), true);
+            // TODO: Consider whether should be CONTENT or not
+            assert_eq!(writer, "line5".as_bytes());
+        })
     }
 }
