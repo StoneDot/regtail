@@ -21,7 +21,7 @@ use std::process::{Child, Command, Stdio};
 
 pub fn setup(test_directory: &str) -> (WorkingDir, Command) {
     let dir = PathBuf::from(format!("integration_tests/{}", test_directory));
-    fs::remove_dir_all(&dir).unwrap();
+    let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
     let mut command = Command::new("target/debug/regtail");
     command.stdout(Stdio::piped());
