@@ -62,6 +62,13 @@ pub struct RunningCommand {
     child: Child,
 }
 
+#[derive(Debug)]
+#[derive(PartialEq)]
+pub enum KillStatus {
+    AlreadyExited,
+    Killed,
+}
+
 impl RunningCommand {
     pub fn create(child: Child) -> Self {
         RunningCommand {
@@ -69,9 +76,12 @@ impl RunningCommand {
         }
     }
 
-    pub fn exit(self: &mut Self) {
-        self.child.kill().unwrap();
+    pub fn exit(self: &mut Self) -> KillStatus {
+        let kill_result = self.child.kill().err().map_or(KillStatus::Killed, |_| {
+            KillStatus::AlreadyExited
+        });
         self.child.wait().unwrap();
+        kill_result
     }
 
     pub fn output(self: &mut Self) -> String {

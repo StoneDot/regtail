@@ -21,6 +21,7 @@ use thread::sleep;
 
 use utils::RunningCommand;
 use utils::WorkingDir;
+use utils::KillStatus;
 
 #[macro_use]
 mod macros;
@@ -33,7 +34,8 @@ test!(simple_run, |dir: WorkingDir, mut cmd: Command| {
     sleep(WAIT_TIME);
     dir.put_file("writed", "tests!");
     sleep(WAIT_TIME);
-    child.exit();
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
     let output = child.output();
     assert!(dbg!(output).contains("tests!"));
 });
