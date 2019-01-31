@@ -9,7 +9,7 @@ matrix:
   - rust: nightly
   fast_finish: true
 script:
-  - cargo test --verbose --all
+  - RUST_BACKTRACE=1 cargo test --verbose --all
 before_deploy: cargo build --release --verbose --all
 deploy:
   provider: releases
