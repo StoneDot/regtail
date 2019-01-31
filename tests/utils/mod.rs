@@ -23,7 +23,11 @@ pub fn setup(test_directory: &str) -> (WorkingDir, Command) {
     let dir = PathBuf::from(format!("integration_tests/{}", test_directory));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
-    let mut command = Command::new("target/debug/regtail");
+    let test_exec_path = std::env::current_exe().unwrap();
+    let exec_dir = test_exec_path.parent().unwrap().parent().unwrap();
+    let mut exec_path = exec_dir.to_path_buf();
+    exec_path.push("regtail");
+    let mut command = Command::new(dbg!(exec_path));
     command.stdout(Stdio::piped());
     let working_dir = WorkingDir::create(dir);
     (working_dir, command)
