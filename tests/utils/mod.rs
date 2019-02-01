@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use std::fs;
-use std::io::Read;
+use std::fs::{self, OpenOptions};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 
@@ -51,6 +51,15 @@ impl WorkingDir {
             let _ = fs::create_dir_all(parent_dir);
         }
         fs::write(new_file_path, content).expect("Cannot put file");
+    }
+
+    pub fn append_file(self: &Self, relative_path: &str, content: &str) {
+        let mut append_file_path = self.parent_path.clone();
+        append_file_path.push(relative_path);
+        let file_path_str = append_file_path.display().to_string();
+        let mut fh = OpenOptions::new().append(true).open(append_file_path)
+            .expect(format!("Failed to open '{}' with append mode", file_path_str).as_ref());
+        let _ = fh.write_all(content.as_bytes());
     }
 
     pub fn display(self: &Self) -> std::path::Display {

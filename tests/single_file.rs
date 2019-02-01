@@ -37,5 +37,17 @@ test!(simple_run, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert!(dbg!(output).contains("tests!"));
+    assert!(output.contains("tests!"));
+});
+
+test!(append_content, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("appended", "line1\nline2\nline3");
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("appended", "\nline4\nline5\n");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert!(dbg!(output).contains("line1\nline2\nline3\nline4\nline5\n"));
 });
