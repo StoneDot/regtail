@@ -40,6 +40,24 @@ test!(multi_file_with_eol, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
+    assert!(output.contains("file1"));
+    assert!(output.contains("file2"));
     assert!(output.contains(" <==\ntest1!\n\n==>"));
     assert!(output.contains(" <==\ntest2!\n"));
+});
+
+test!(multi_file_without_eol, |dir: WorkingDir, mut cmd: Command| {
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.put_file("file1", "test1!");
+    sleep(WAIT_TIME);
+    dir.put_file("file2", "test2!");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert!(output.contains("file1"));
+    assert!(output.contains("file2"));
+    assert!(output.contains(" <==\ntest1!\n\n==>"));
+    assert!(output.contains(" <==\ntest2!"));
 });
