@@ -63,6 +63,11 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
 
 impl DirectoryWatcher<File, BufWriter<Stdout>> {
     fn print_file_path(self: &Self, path: &PathBuf) {
+        if let Some(selected_file_path) = &self.selected_file_path {
+            if !self.file_map[selected_file_path].printed_eol() {
+                println!();
+            }
+        }
         if let Some(current_dir) = &self.current_dir {
             if let Some(relative_path) = diff_paths(&path, &current_dir) {
                 println!("\n==> {} <==", relative_path.display());
@@ -144,18 +149,37 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         }
     }
 
+    fn handle_remove(self: &mut Self, path: PathBuf) -> () {
+        self.file_map.remove(&path);
+        if let Some(selected_file_path) = &self.selected_file_path {
+            if selected_file_path == &path {
+                self.selected_file_path = None
+            }
+        }
+    }
+
     pub fn follow_dir(self: &mut Self, opt: &Opt) -> Result<(), NotifyError> {
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx)?;
 
+        let mut prev_reader: Option<&TailState<File, BufWriter<Stdout>>> = None;
         for path in self.filter.filtered_files(&opt) {
             if self.selected_file_path.is_some() {
+                // If there is a previous file and its last byte is not \n,
+                // put \n for consistent result.
+                if let Some(reader) = prev_reader {
+                    if !reader.printed_eol() {
+                        println!();
+                    }
+                }
+
                 println!();
             }
             println!("==> {} <==", path.display());
             let reader = tail(&PathBuf::from(&path), opt.lines)?;
             let canonical_path = path.canonicalize()?;
             self.file_map.insert(canonical_path.to_owned(), reader);
+            prev_reader = Some(&self.file_map[&canonical_path]);
             self.selected_file_path = Some(canonical_path);
         }
 
@@ -171,7 +195,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
                     } else if op == Op::CREATE {
                         self.handle_create(path)?
                     } else if op == Op::REMOVE {
-                        self.file_map.remove(&path);
+                        self.handle_remove(path)
                     } else if op == Op::RENAME {
                         self.handle_rename(path, cookie);
                     }
