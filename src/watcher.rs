@@ -63,18 +63,21 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
 
 impl DirectoryWatcher<File, BufWriter<Stdout>> {
     fn print_file_path(self: &Self, path: &PathBuf) {
+        let mut preceeding = "\n";
         if let Some(selected_file_path) = &self.selected_file_path {
             if !self.file_map[selected_file_path].printed_eol() {
                 println!();
             }
+        } else {
+            preceeding = "";
         }
         if let Some(current_dir) = &self.current_dir {
             if let Some(relative_path) = diff_paths(&path, &current_dir) {
-                println!("\n==> {} <==", relative_path.display());
+                println!("{}==> {} <==", preceeding, relative_path.display());
                 return;
             }
         }
-        println!("\n==> {} <==", path.display())
+        println!("{}==> {} <==", preceeding, path.display())
     }
 
     fn change_selected_file(self: &mut Self, path: &PathBuf) {
@@ -84,12 +87,16 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
                 self.print_file_path(&path);
                 self.selected_file_path = Some(path.to_owned());
             }
+        } else {
+            // Should print file path because of first output of the program
+            self.print_file_path(&path);
+            self.selected_file_path = Some(path.to_owned());
         }
     }
 
     fn handle_write(self: &mut Self, path: PathBuf) -> std::io::Result<()> {
         // Just ignore if the path is not match regex
-        if !self.filter.match_path(&&path) {
+        if !self.filter.match_path(&path) {
             return Ok(());
         }
 
