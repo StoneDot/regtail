@@ -290,7 +290,6 @@ line5"#;
     fn test_dump_to_tail_without_line_ending() {
         tail_state_test!(CONTENT_WITHOUT_LINE_ENDING, |target, writer| {
             assert_eq!(target.dump_to_tail().is_ok(), true);
-            // TODO: Consider whether should be CONTENT or not
             assert_eq!(writer, CONTENT_WITHOUT_LINE_ENDING.as_bytes());
         })
     }
@@ -309,7 +308,6 @@ line5"#;
         tail_state_test!(CONTENT_WITHOUT_LINE_ENDING, |target, writer| {
             let result = tail_from_reader(&mut target, 1);
             assert_eq!(result.is_ok(), true);
-            // TODO: Consider whether should be CONTENT or not
             assert_eq!(writer, "line5".as_bytes());
         })
     }
