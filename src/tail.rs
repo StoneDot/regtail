@@ -40,6 +40,7 @@ pub struct TailState<T, U> where
     reader: T,
     writer: U,
     seek_pos: u64,
+    printed_eol: bool,
 }
 
 impl TailState<std::fs::File, io::BufWriter<Stdout>> {
@@ -50,6 +51,7 @@ impl TailState<std::fs::File, io::BufWriter<Stdout>> {
             reader: file,
             writer,
             seek_pos: pos,
+            printed_eol: false,
         })
     }
 }
@@ -81,6 +83,8 @@ impl<T, U> TailState<T, U> where
     pub fn len(self: &Self) -> Result<u64> {
         self.reader.len()
     }
+
+    pub fn printed_eol(self: &Self) -> bool { self.printed_eol }
 
     fn tail_start_position(self: &mut Self, tail_count: u64) -> Result<u64> {
         let mut buffer = [0u8; BUFFER_SIZE];
@@ -176,6 +180,9 @@ impl<T, U> TailState<T, U> where
         target = &mut target[..read_size];
         offset += read_size as u64;
 
+        // Hold the byte last read
+        let mut last_byte = target.last().map(u8::to_owned);
+
         if read_size == 0 {
             return Ok(offset);
         } else {
@@ -191,8 +198,13 @@ impl<T, U> TailState<T, U> where
                     // Flush buffer
                     self.flush()?;
 
+                    // Save whether last byte is \n
+                    self.printed_eol = last_byte.map_or(false, |byte| byte == b'\n');
+
                     return Ok(offset);
                 }
+
+                last_byte = target.last().map(u8::to_owned);
             }
         }
     }
@@ -249,6 +261,7 @@ line5"#;
                 reader,
                 writer,
                 seek_pos: 0,
+                printed_eol: false,
             })
         }
     }
