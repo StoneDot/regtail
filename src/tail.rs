@@ -39,7 +39,7 @@ pub struct TailState<T, U> where
     U: Write {
     reader: T,
     writer: U,
-    seek_pos: u64,
+    reader_seek_pos: u64,
     printed_eol: bool,
 }
 
@@ -50,7 +50,7 @@ impl TailState<std::fs::File, io::BufWriter<Stdout>> {
         Ok(TailState {
             reader: file,
             writer,
-            seek_pos: pos,
+            reader_seek_pos: pos,
             printed_eol: false,
         })
     }
@@ -72,12 +72,12 @@ impl<T, U> TailState<T, U> where
     }
 
     pub fn seek(mut self: &mut Self, seek: SeekFrom) -> Result<u64> {
-        self.seek_pos = self.reader.seek(seek)?;
-        Ok(self.seek_pos)
+        self.reader_seek_pos = self.reader.seek(seek)?;
+        Ok(self.reader_seek_pos)
     }
 
     pub fn current_seek(self: &Self) -> u64 {
-        self.seek_pos
+        self.reader_seek_pos
     }
 
     pub fn len(self: &Self) -> Result<u64> {
@@ -260,7 +260,7 @@ line5"#;
             Ok(TailState {
                 reader,
                 writer,
-                seek_pos: 0,
+                reader_seek_pos: 0,
                 printed_eol: false,
             })
         }
