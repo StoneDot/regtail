@@ -63,21 +63,21 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
 
 impl DirectoryWatcher<File, BufWriter<Stdout>> {
     fn print_file_path(self: &Self, path: &PathBuf) {
-        let mut preceeding = "\n";
+        let mut preceding = "\n";
         if let Some(selected_file_path) = &self.selected_file_path {
             if !self.file_map[selected_file_path].printed_eol() {
                 println!();
             }
         } else {
-            preceeding = "";
+            preceding = "";
         }
         if let Some(current_dir) = &self.current_dir {
             if let Some(relative_path) = diff_paths(&path, &current_dir) {
-                println!("{}==> {} <==", preceeding, relative_path.display());
+                println!("{}==> {} <==", preceding, relative_path.display());
                 return;
             }
         }
-        println!("{}==> {} <==", preceeding, path.display())
+        println!("{}==> {} <==", preceding, path.display())
     }
 
     fn change_selected_file(self: &mut Self, path: &PathBuf) {
