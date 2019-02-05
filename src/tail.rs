@@ -14,15 +14,41 @@
  * limitations under the License.
  */
 
+use std::cell::{RefCell, RefMut};
 use std::cmp::max;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::{self, Read, Result, Seek, SeekFrom, Stdout, Write};
 use std::path::PathBuf;
+use std::rc::{Rc, Weak};
+
+use lru::LruCache;
 
 // Max recommended buffer size is 128kB
 // We choose reasonable size 8kB
 const BUFFER_SIZE: usize = 8 * 1024;
 const BUFFER_LEN: u64 = BUFFER_SIZE as u64;
+
+pub struct TransparentReader<K, T> where
+    K: Hash + Eq,
+    T: Read + Seek + Length {
+    reader_repository: Rc<RefCell<LruCache<K, Rc<RefCell<T>>>>>,
+    reader_key: K,
+    reader_cache: Weak<RefCell<T>>,
+}
+
+impl<K, T> TransparentReader<K, T> where
+    K: Hash + Eq,
+    T: Read + Seek + Length {
+    pub fn reader(self: &Self) -> Rc<RefCell<T>> {
+        let reader = self.reader_cache.upgrade();
+        if let Some(x) = reader {
+            return x;
+        }
+        let reader = self.reader_repository.borrow_mut().pop(&self.reader_key);
+        return reader.unwrap();
+    }
+}
 
 pub trait Length {
     fn len(self: &Self) -> Result<u64>;
