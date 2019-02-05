@@ -61,3 +61,20 @@ test!(multi_file_without_eol, |dir: WorkingDir, mut cmd: Command| {
     assert!(output.contains(" <==\ntest1!\n\n==>"));
     assert!(output.contains(" <==\ntest2!"));
 });
+
+test!(multi_file_alread_exist_file, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("file1", "test1!\n");
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("file1", "test2!\n");
+    sleep(WAIT_TIME);
+    dir.put_file("file2", "test3!\n");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert!(output.contains("file1"));
+    assert!(output.contains("file2"));
+    assert!(output.contains("file1 <==\ntest1!\ntest2!\n"));
+    assert!(output.contains("file2 <==\ntest3!\n"));
+});
