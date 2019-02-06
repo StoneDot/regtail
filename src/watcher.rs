@@ -157,10 +157,15 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
     }
 
     fn handle_remove(self: &mut Self, path: PathBuf) -> () {
-        self.file_map.remove(&path);
-        if let Some(selected_file_path) = &self.selected_file_path {
-            if selected_file_path == &path {
-                self.selected_file_path = None
+        if let Some(reader) = self.file_map.remove(&path) {
+            if let Some(selected_file_path) = &self.selected_file_path {
+                if selected_file_path == &path {
+                    if !reader.printed_eol() {
+                        println!();
+                    }
+                    println!();
+                    self.selected_file_path = None
+                }
             }
         }
     }

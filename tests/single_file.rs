@@ -49,5 +49,20 @@ test!(append_content, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert!(dbg!(output).contains("line1\nline2\nline3\nline4\nline5\n"));
+    assert!(output.contains("line1\nline2\nline3\nline4\nline5\n"));
+});
+
+test!(rm_append, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("removed_file", "line1\n");
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.remove_file("removed_file");
+    sleep(WAIT_TIME);
+    dir.put_file("removed_file", "line2\n");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert!(output.contains("line1\n\n==>"));
+    assert!(output.contains("removed_file <==\nline2"));
 });
