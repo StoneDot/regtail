@@ -62,6 +62,12 @@ impl WorkingDir {
         let _ = fh.write_all(content.as_bytes());
     }
 
+    pub fn remove_file(self: &Self, relative_path: &str) {
+        let mut remove_file_path = self.parent_path.clone();
+        remove_file_path.push(relative_path);
+        fs::remove_file(remove_file_path).expect("Cannot remove file");
+    }
+
     pub fn display(self: &Self) -> std::path::Display {
         self.parent_path.display()
     }
