@@ -66,3 +66,17 @@ test!(rm_append, |dir: WorkingDir, mut cmd: Command| {
     assert!(output.contains("line1\n\n==>"));
     assert!(output.contains("removed_file <==\nline2"));
 });
+
+test!(double_append, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("double", "line1\n");
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("double", "line2");
+    sleep(WAIT_TIME);
+    dir.append_file("double", "appended\n");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert!(output.contains("double <==\nline1\nline2appended\n"));
+});
