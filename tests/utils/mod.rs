@@ -76,6 +76,15 @@ impl WorkingDir {
         fs::rename(src_file_path, dest_file_path).expect("Cannot rename file");
     }
 
+    pub fn shrink_file(self: &Self, relative_path: &str) {
+        let mut shrink_file_path = self.parent_path.clone();
+        shrink_file_path.push(relative_path);
+        let file_path_str = shrink_file_path.display().to_string();
+        let mut fh = OpenOptions::new().write(true).open(shrink_file_path)
+            .expect(format!("Failed to open '{}' with write mode", file_path_str).as_ref());
+        let _ = fh.write_all(b"");
+    }
+
     pub fn display(self: &Self) -> std::path::Display {
         self.parent_path.display()
     }

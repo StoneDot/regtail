@@ -80,3 +80,17 @@ test!(double_append, |dir: WorkingDir, mut cmd: Command| {
     let output = child.output();
     assert_contains!(output, "double <==\nline1\nline2appended\n");
 });
+
+test!(shrink_append, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("replaced", "line1\n");
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.shrink_file("replaced");
+    sleep(WAIT_TIME);
+    dir.append_file("replaced", "new line1\n");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_contains!(output, "replaced <==\nline1\nnew line1\n");
+});
