@@ -20,9 +20,9 @@ use std::thread;
 use std::time::Duration;
 use thread::sleep;
 
+use utils::KillStatus;
 use utils::RunningCommand;
 use utils::WorkingDir;
-use utils::KillStatus;
 
 #[macro_use]
 mod macros;
@@ -77,4 +77,18 @@ test!(multi_file_alread_exist_file, |dir: WorkingDir, mut cmd: Command| {
     assert!(output.contains("file2"));
     assert!(output.contains("file1 <==\ntest1!\ntest2!\n"));
     assert!(output.contains("file2 <==\ntest3!\n"));
+});
+
+test!(rename_file, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("file1", "test1");
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.rename_file("file1", "file2");
+    dir.append_file("file2", "test2");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert!(output.contains("file1 <==\ntest1\n\n==>"));
+    assert!(dbg!(output).contains("file2 <==\ntest2"));
 });

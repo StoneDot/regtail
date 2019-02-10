@@ -68,6 +68,14 @@ impl WorkingDir {
         fs::remove_file(remove_file_path).expect("Cannot remove file");
     }
 
+    pub fn rename_file(self: &Self, src_relative_path: &str, dest_relative_path: &str) {
+        let mut src_file_path = self.parent_path.clone();
+        src_file_path.push(src_relative_path);
+        let mut dest_file_path = self.parent_path.clone();
+        dest_file_path.push(dest_relative_path);
+        fs::rename(src_file_path, dest_file_path).expect("Cannot rename file");
+    }
+
     pub fn display(self: &Self) -> std::path::Display {
         self.parent_path.display()
     }
