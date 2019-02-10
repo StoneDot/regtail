@@ -80,6 +80,10 @@ impl<T, U> TailState<T, U> where
         self.reader_seek_pos
     }
 
+    pub fn force_current_seek(self: &mut Self) -> Result<u64> {
+        self.seek(SeekFrom::Start(self.reader_seek_pos))
+    }
+
     pub fn len(self: &Self) -> Result<u64> {
         self.reader.len()
     }
