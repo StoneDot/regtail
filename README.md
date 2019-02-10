@@ -5,7 +5,7 @@ Regex base tail written in Rust.
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # Why regtail?
-`tail -F` is very common way to audit log files.
+`tail -F` is very common way to monitor log files.
 Although it requires specify the monitored files before it's launched as below.
 
 ```bash
