@@ -60,7 +60,11 @@ impl<T, U> TailState<T, U> where
     T: Read + Seek + Length,
     U: Write {
     pub fn read(&mut self, mut buf: &mut [u8]) -> Result<usize> {
-        self.reader.read(&mut buf)
+        let read_size = self.reader.read(&mut buf);
+        if let Ok(read_size) = read_size {
+            self.reader_seek_pos += read_size as u64;
+        }
+        read_size
     }
 
     pub fn write(&mut self, mut buf: &[u8]) -> Result<usize> {
