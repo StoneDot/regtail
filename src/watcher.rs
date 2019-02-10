@@ -62,6 +62,13 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
 }
 
 impl DirectoryWatcher<File, BufWriter<Stdout>> {
+
+    fn print_normalized_path(path: &PathBuf) {
+        let relative_path = path.to_string_lossy();
+        let display_path = relative_path.trim_start_matches("./");
+        println!("==> {} <==", display_path);
+    }
+
     fn print_file_path(self: &Self, path: &PathBuf) {
         let mut preceding = "\n";
         if let Some(selected_file_path) = &self.selected_file_path {
@@ -73,11 +80,13 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         }
         if let Some(current_dir) = &self.current_dir {
             if let Some(relative_path) = diff_paths(&path, &current_dir) {
-                println!("{}==> {} <==", preceding, relative_path.display());
+                print!("{}", preceding);
+                Self::print_normalized_path(&relative_path);
                 return;
             }
         }
-        println!("{}==> {} <==", preceding, path.display())
+        print!("{}", preceding);
+        Self::print_normalized_path(path);
     }
 
     fn unsubscribe_select_file(self: &mut Self, path: &PathBuf, reader: &TailState<File, BufWriter<Stdout>>) {
@@ -192,7 +201,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
 
                 println!();
             }
-            println!("==> {} <==", path.display());
+            Self::print_normalized_path(&path);
             let reader = tail(&PathBuf::from(&path), opt.lines)?;
             let canonical_path = path.canonicalize()?;
             self.file_map.insert(canonical_path.to_owned(), reader);
