@@ -157,17 +157,12 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         Ok(())
     }
 
-    fn handle_rename(self: &mut Self, path: PathBuf, cookie: Option<u32>) -> std::io::Result<()> {
+    fn handle_rename(self: &mut Self, path: PathBuf, cookie: Option<u32>) {
         match self.renaming_map.remove(&cookie.unwrap()) {
-            Some(mut file) => {
+            Some(file) => {
                 // Just ignore if the new path is not match regex
                 if !self.filter.match_path(&path) {
-                    return Ok(());
-                }
-
-                // On windows, seek position should be set manually
-                if cfg!(target_os = "windows") {
-                    file.force_current_seek()?;
+                    return;
                 }
 
                 // New path supplied
@@ -181,7 +176,6 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
                 }
             }
         }
-        Ok(())
     }
 
     fn handle_remove(self: &mut Self, path: PathBuf) -> () {
