@@ -23,16 +23,16 @@ It seems to be sufficient to monitor all log files. But actually this IS NOT
 the sufficient way as follows:
 
 ```bash
-term1> ls
+term1 > ls
 log.20190101 log.20190102
-term1> tail -F log.*
+term1 > tail -F log.*
 ==> log.20190101 <==
 This is log.20190101
 
 ==> log.20190102 <==
 This is log.20190102
-term2> echo "This is log.20190103" > log.20190103
-term1> # No output on term1
+term2 > echo "This is log.20190103" > log.20190103
+term1 > # No output on term1
 ```
 
 Newly created file is not monitored at all!
@@ -40,16 +40,16 @@ Newly created file is not monitored at all!
 This problem is solved by regtail! You just run regtail with no arguments as follows:
 
 ```bash
-term1> ls
+term1 > ls
 log.20190101 log.20190102
-term1> regtail
+term1 > regtail
 ==> log.20190101 <==
 This is log.20190101
 
 ==> log.20190102 <==
 This is log.20190102
-term2> echo "This is log.20190103" > log.20190103
-term1> # term1 output is below
+term2 > echo "This is log.20190103" > log.20190103
+term1 > # term1 output is below
 
 ==> log.20190103 <==
 This is log.20190103
@@ -58,9 +58,9 @@ This is log.20190103
 Moreover you can specify target files with regular expression as follow:
 
 ```bash
-term1> ls
+> ls
 error.20180101 error.20190101 error.20190102 log.20190101 log.20190102
-term1> regtail 'error\.\d{4}0101'
+> regtail 'error\.\d{4}0101'
 ==> error.20180101 <==
 This is error.20180101
 
