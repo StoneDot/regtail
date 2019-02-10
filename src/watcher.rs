@@ -80,6 +80,18 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         println!("{}==> {} <==", preceding, path.display())
     }
 
+    fn unsubscribe_select_file(self: &mut Self, path: &PathBuf, reader: &TailState<File, BufWriter<Stdout>>) {
+        if let Some(selected_file_path) = &self.selected_file_path {
+            if selected_file_path == path {
+                if !reader.printed_eol() {
+                    println!();
+                }
+                println!();
+                self.selected_file_path = None
+            }
+        }
+    }
+
     fn change_selected_file(self: &mut Self, path: &PathBuf) {
         // Handle current path change
         if let Some(last_path) = &self.selected_file_path {
@@ -150,6 +162,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             None => {
                 // Old path supplied
                 if let Some(file) = self.file_map.remove(&path) {
+                    self.unsubscribe_select_file(&path, &file);
                     self.renaming_map.insert(cookie.unwrap(), file);
                 }
             }
@@ -158,15 +171,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
 
     fn handle_remove(self: &mut Self, path: PathBuf) -> () {
         if let Some(reader) = self.file_map.remove(&path) {
-            if let Some(selected_file_path) = &self.selected_file_path {
-                if selected_file_path == &path {
-                    if !reader.printed_eol() {
-                        println!();
-                    }
-                    println!();
-                    self.selected_file_path = None
-                }
-            }
+            self.unsubscribe_select_file(&path, &reader);
         }
     }
 
