@@ -5,7 +5,7 @@ authors = ["Hiroaki Goto <goto.inct@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-notify = "4.0.0"
+notify = "4.0"
 structopt = "0.2"
 walkdir = "2"
 regex = "1"
