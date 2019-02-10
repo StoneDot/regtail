@@ -37,7 +37,7 @@ test!(simple_run, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert!(output.contains("tests!"));
+    assert_contains!(output, "tests!");
 });
 
 test!(append_content, |dir: WorkingDir, mut cmd: Command| {
@@ -49,7 +49,7 @@ test!(append_content, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert!(output.contains("line1\nline2\nline3\nline4\nline5\n"));
+    assert_contains!(output, "line1\nline2\nline3\nline4\nline5\n");
 });
 
 test!(rm_append, |dir: WorkingDir, mut cmd: Command| {
@@ -63,8 +63,8 @@ test!(rm_append, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert!(output.contains("line1\n\n==>"));
-    assert!(output.contains("removed_file <==\nline2"));
+    assert_contains!(output, "line1\n\n==>");
+    assert_contains!(output, "removed_file <==\nline2");
 });
 
 test!(double_append, |dir: WorkingDir, mut cmd: Command| {
@@ -78,5 +78,5 @@ test!(double_append, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert!(output.contains("double <==\nline1\nline2appended\n"));
+    assert_contains!(output, "double <==\nline1\nline2appended\n");
 });

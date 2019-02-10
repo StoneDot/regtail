@@ -40,10 +40,10 @@ test!(multi_file_with_eol, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert!(output.contains("file1"));
-    assert!(output.contains("file2"));
-    assert!(output.contains(" <==\ntest1!\n\n==>"));
-    assert!(output.contains(" <==\ntest2!\n"));
+    assert_contains!(output, "file1");
+    assert_contains!(output, "file2");
+    assert_contains!(output, " <==\ntest1!\n\n==>");
+    assert_contains!(output, " <==\ntest2!\n");
 });
 
 test!(multi_file_without_eol, |dir: WorkingDir, mut cmd: Command| {
@@ -56,10 +56,10 @@ test!(multi_file_without_eol, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert!(output.contains("file1"));
-    assert!(output.contains("file2"));
-    assert!(output.contains(" <==\ntest1!\n\n==>"));
-    assert!(output.contains(" <==\ntest2!"));
+    assert_contains!(output, "file1");
+    assert_contains!(output, "file2");
+    assert_contains!(output, " <==\ntest1!\n\n==>");
+    assert_contains!(output, " <==\ntest2!");
 });
 
 test!(multi_file_alread_exist_file, |dir: WorkingDir, mut cmd: Command| {
@@ -73,10 +73,10 @@ test!(multi_file_alread_exist_file, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert!(output.contains("file1"));
-    assert!(output.contains("file2"));
-    assert!(output.contains("file1 <==\ntest1!\ntest2!\n"));
-    assert!(output.contains("file2 <==\ntest3!\n"));
+    assert_contains!(output, "file1");
+    assert_contains!(output, "file2");
+    assert_contains!(output, "file1 <==\ntest1!\ntest2!\n");
+    assert_contains!(output, "file2 <==\ntest3!\n");
 });
 
 test!(rename_file, |dir: WorkingDir, mut cmd: Command| {
@@ -89,6 +89,6 @@ test!(rename_file, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert!(output.contains("file1 <==\ntest1\n\n==>"));
-    assert!(dbg!(output).contains("file2 <==\ntest2"));
+    assert_contains!(output, "file1 <==\ntest1\n\n==>");
+    assert_contains!(output, "file2 <==\ntest2");
 });
