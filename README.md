@@ -2,6 +2,7 @@
 Regex base tail written in Rust.
 
 [![Build Status](https://travis-ci.org/StoneDot/regtail.svg?branch=master)](https://travis-ci.org/StoneDot/regtail)
+[![Build status](https://ci.appveyor.com/api/projects/status/4ms5u2h1q0pspovx/branch/master?svg=true)](https://ci.appveyor.com/project/StoneDot/regtail/branch/master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # Why regtail?
