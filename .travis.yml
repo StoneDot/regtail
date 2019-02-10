@@ -1,13 +1,20 @@
 language: rust
 rust:
-- stable
-- beta
-- nightly
+  - stable
+  - beta
+  - nightly
 cache: cargo
 matrix:
   allow_failures:
   - rust: nightly
   fast_finish: true
+  include:
+    - os: osx
+      rust: stable
+    - os: osx
+      rust: beta
+    - os: osx
+      rust: nightly
 script:
   - RUST_BACKTRACE=1 cargo test --verbose --all
 before_deploy: cargo build --release --verbose --all
