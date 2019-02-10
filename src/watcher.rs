@@ -62,11 +62,26 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
 }
 
 impl DirectoryWatcher<File, BufWriter<Stdout>> {
-
     fn print_normalized_path(path: &PathBuf) {
         let relative_path = path.to_string_lossy();
         let display_path = relative_path.trim_start_matches("./");
         println!("==> {} <==", display_path);
+    }
+
+    fn normalize_path_for_windows(canonical_path: PathBuf) -> PathBuf {
+        if cfg!(target_os = "windows") {
+            let lossy_str = canonical_path.to_string_lossy();
+            let path = lossy_str.replace("/", "\\");
+            if path.starts_with("\\\\?\\") {
+                let mut path = path.trim_start_matches("\\\\?\\");
+                if path.starts_with("UNC\\") {
+                    path = path.trim_start_matches("UNC\\");
+                }
+                return PathBuf::from(path);
+            }
+            return PathBuf::from(path);
+        }
+        canonical_path
     }
 
     fn print_file_path(self: &Self, path: &PathBuf) {
@@ -203,7 +218,9 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             }
             Self::print_normalized_path(&path);
             let reader = tail(&PathBuf::from(&path), opt.lines)?;
-            let canonical_path = path.canonicalize()?;
+            let mut canonical_path = path.canonicalize()?;
+            canonical_path = Self::normalize_path_for_windows(canonical_path);
+
             self.file_map.insert(canonical_path.to_owned(), reader);
             prev_reader = Some(&self.file_map[&canonical_path]);
             self.selected_file_path = Some(canonical_path);
@@ -215,7 +232,8 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             let recursive_mode = opt.recursive_mode();
             watcher.watch(watch_path.as_os_str(), recursive_mode)?;
             match rx.recv_timeout(std::time::Duration::from_secs(1)) {
-                Ok(RawEvent { path: Some(path), op: Ok(op), cookie }) => {
+                Ok(RawEvent { path: Some(mut path), op: Ok(op), cookie }) => {
+                    path = Self::normalize_path_for_windows(path);
                     if op == Op::WRITE {
                         self.handle_write(path)?
                     } else if op == Op::CREATE {
