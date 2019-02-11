@@ -27,7 +27,7 @@ use utils::KillStatus;
 mod macros;
 mod utils;
 
-const WAIT_TIME: Duration = Duration::from_millis(50);
+const WAIT_TIME: Duration = Duration::from_millis(200);
 
 test!(simple_run, |dir: WorkingDir, mut cmd: Command| {
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
