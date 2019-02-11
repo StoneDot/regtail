@@ -58,6 +58,12 @@ test!(rm_append, |dir: WorkingDir, mut cmd: Command| {
     sleep(WAIT_TIME);
     dir.remove_file("removed_file");
     sleep(WAIT_TIME);
+
+    // On windows, some time required to remove old file because of pending delete
+    if cfg!(target_os = "windows") {
+        sleep(Duration::from_secs(2));
+    }
+
     dir.put_file("removed_file", "line2\n");
     sleep(WAIT_TIME);
     let result = child.exit();
