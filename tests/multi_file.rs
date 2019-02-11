@@ -28,7 +28,7 @@ use utils::WorkingDir;
 mod macros;
 mod utils;
 
-const WAIT_TIME: Duration = Duration::from_millis(50);
+const WAIT_TIME: Duration = Duration::from_millis(200);
 
 test!(multi_file_with_eol, |dir: WorkingDir, mut cmd: Command| {
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
