@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use std::fs::{self, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
@@ -50,7 +50,11 @@ impl WorkingDir {
         if let Some(parent_dir) = new_file_path.parent() {
             let _ = fs::create_dir_all(parent_dir);
         }
-        fs::write(new_file_path, content).expect("Cannot put file");
+        let file_path_str = new_file_path.display().to_string();
+        let mut fh = File::create(new_file_path)
+            .expect(format!("Failed to open '{}'", file_path_str).as_ref());
+        fh.write_all(content.as_ref()).expect("Cannot put file");
+        fh.sync_all().expect("Failed to sync");
     }
 
     pub fn append_file(self: &Self, relative_path: &str, content: &str) {
@@ -59,7 +63,8 @@ impl WorkingDir {
         let file_path_str = append_file_path.display().to_string();
         let mut fh = OpenOptions::new().append(true).open(append_file_path)
             .expect(format!("Failed to open '{}' with append mode", file_path_str).as_ref());
-        let _ = fh.write_all(content.as_bytes());
+        fh.write_all(content.as_bytes()).expect("Cannot append file");
+        fh.sync_all().expect("Failed to sync");
     }
 
     pub fn remove_file(self: &Self, relative_path: &str) {
@@ -82,7 +87,8 @@ impl WorkingDir {
         let file_path_str = shrink_file_path.display().to_string();
         let mut fh = OpenOptions::new().write(true).open(shrink_file_path)
             .expect(format!("Failed to open '{}' with write mode", file_path_str).as_ref());
-        let _ = fh.write_all(b"");
+        fh.write_all(b"").expect("Cannot shrink file");
+        fh.sync_all().expect("Failed to sync");
     }
 
     pub fn display(self: &Self) -> std::path::Display {
