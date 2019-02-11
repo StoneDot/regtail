@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fs::File;
-use std::io::{BufWriter, Stdout};
-use std::path::PathBuf;
+use std::io::{BufWriter, ErrorKind, Stdout};
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 
 use notify::{Error as NotifyError, op::Op, raw_watcher, RawEvent, Watcher};
@@ -82,6 +82,33 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             return PathBuf::from(path);
         }
         canonical_path
+    }
+
+    fn pending_delete_file(path: &Path) -> bool {
+        if let Err(e) = File::open(path) {
+            if e.kind() == ErrorKind::PermissionDenied {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn handle_pending_delete(self: &mut Self, pending_delete_files: &mut VecDeque<PathBuf>) {
+        // On Windows, try to detect pending delete files
+        if cfg!(target_os = "windows") {
+            for (path, _) in &self.file_map {
+                if Self::pending_delete_file(path) {
+                    pending_delete_files.push_back(path.to_owned());
+                }
+            }
+            // Release file handles with pending delete to ensure actually they're deleted
+            for path in pending_delete_files.iter() {
+                if let Some(reader) = self.file_map.remove(path) {
+                    self.unsubscribe_select_file(path, &reader);
+                }
+            }
+            pending_delete_files.clear();
+        }
     }
 
     fn print_file_path(self: &Self, path: &PathBuf) {
@@ -156,22 +183,6 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         Ok(())
     }
 
-    fn handle_create(self: &mut Self, path: PathBuf) -> std::io::Result<()> {
-        // Just ignore if the path is not match regex
-        if !self.filter.match_path(&path) {
-            return Ok(());
-        }
-
-        // Newly created file should be dumped first and watched
-        self.file_map.remove(&path);
-        let file = File::open(&path)?;
-        let mut reader = TailState::from_file(file)?;
-        self.change_selected_file(&path);
-        reader.dump_to_tail()?;
-        self.file_map.insert(path, reader);
-        Ok(())
-    }
-
     fn handle_rename(self: &mut Self, path: PathBuf, cookie: Option<u32>) {
         match self.renaming_map.remove(&cookie.unwrap()) {
             Some(file) => {
@@ -228,6 +239,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
 
         let watch_path = opt.watch_path();
 
+        let mut pending_delete_files = VecDeque::new();
         loop {
             let recursive_mode = opt.recursive_mode();
             watcher.watch(watch_path.as_os_str(), recursive_mode)?;
@@ -236,8 +248,6 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
                     path = Self::normalize_path_for_windows(path);
                     if op == Op::WRITE {
                         self.handle_write(path)?
-                    } else if op == Op::CREATE {
-                        self.handle_create(path)?
                     } else if op == Op::REMOVE {
                         self.handle_remove(path)
                     } else if op == Op::RENAME {
@@ -253,6 +263,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
                     }
                 }
             }
+            self.handle_pending_delete(&mut pending_delete_files);
         }
     }
 }
