@@ -114,8 +114,10 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
     fn print_file_path(self: &Self, path: &PathBuf) {
         let mut preceding = "\n";
         if let Some(selected_file_path) = &self.selected_file_path {
-            if !self.file_map[selected_file_path].printed_eol() {
-                println!();
+            if let Some(selected_file) = self.file_map.get(selected_file_path) {
+                if !self.file_map[selected_file_path].printed_eol() {
+                    println!();
+                }
             }
         } else {
             preceding = "";
@@ -174,39 +176,43 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             }
             None => {
                 // Supplied path is not opened currently
-                let file = File::open(&path)?;
-                let mut reader = TailState::from_file(file)?;
-                reader.dump_to_tail()?;
-                self.file_map.insert(path, reader);
+                let file = File::open(&path);
+                if let Ok(file) = file {
+                    let mut reader = TailState::from_file(file)?;
+                    reader.dump_to_tail()?;
+                    self.file_map.insert(path, reader);
+                }
             }
         }
         Ok(())
     }
 
     fn handle_rename(self: &mut Self, path: PathBuf, cookie: Option<u32>) {
-        match self.renaming_map.remove(&cookie.unwrap()) {
-            Some(file) => {
-                // Just ignore if the new path is not match regex
-                if !self.filter.match_path(&path) {
-                    return;
-                }
+        if let Some(cookie) = cookie {
+            match self.renaming_map.remove(&cookie) {
+                Some(file) => {
+                    // Just ignore if the new path is not match regex
+                    if !self.filter.match_path(&path) {
+                        return;
+                    }
 
-                // New path supplied
-                self.file_map.insert(path, file);
-            }
-            None => {
-                // Old path supplied
-                if let Some(file) = self.file_map.remove(&path) {
-                    self.unsubscribe_select_file(&path, &file);
-                    self.renaming_map.insert(cookie.unwrap(), file);
+                    // New path supplied
+                    self.file_map.insert(path, file);
+                }
+                None => {
+                    // Old path supplied
+                    if let Some(file) = self.file_map.remove(&path) {
+                        self.unsubscribe_select_file(&path, &file);
+                        self.renaming_map.insert(cookie, file);
+                    }
                 }
             }
         }
     }
 
-    fn handle_remove(self: &mut Self, path: PathBuf) -> () {
-        if let Some(reader) = self.file_map.remove(&path) {
-            self.unsubscribe_select_file(&path, &reader);
+    fn handle_remove(self: &mut Self, path: &PathBuf) -> () {
+        if let Some(reader) = self.file_map.remove(path) {
+            self.unsubscribe_select_file(path, &reader);
         }
     }
 
@@ -246,12 +252,33 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             match rx.recv_timeout(std::time::Duration::from_secs(1)) {
                 Ok(RawEvent { path: Some(mut path), op: Ok(op), cookie }) => {
                     path = Self::normalize_path_for_windows(path);
-                    if op == Op::WRITE {
-                        self.handle_write(path)?
-                    } else if op == Op::REMOVE {
-                        self.handle_remove(path)
-                    } else if op == Op::RENAME {
-                        self.handle_rename(path, cookie);
+
+                    // On MacOS, some simultaneous operation cannot handle correctly.
+                    // This is why the curious handling is required.
+                    if cfg!(target_os = "macos") {
+                        // FSEvents cannot handle renaming and other operations simultaneously.
+                        if op.contains(Op::RENAME) && cookie.is_some() {
+                            // Try to handle renaming correctly at the sacrifice of other operations.
+                            self.handle_rename(path.to_owned(), cookie);
+                        } else {
+                            // Renaming and removing may not happen same time.
+                            // Therefore in the case of Op = REMOVE | RENAME,
+                            // just ignore remove operation to consider REMOVE is stale.
+                            if op.contains(Op::REMOVE) && !op.contains(Op::RENAME) {
+                                self.handle_remove(&path)
+                            }
+                            if op.contains(Op::WRITE) {
+                                self.handle_write(path)?
+                            }
+                        }
+                    } else {
+                        if op == Op::WRITE {
+                            self.handle_write(path)?
+                        } else if op == Op::REMOVE {
+                            self.handle_remove(&path)
+                        } else if op == Op::RENAME {
+                            self.handle_rename(path, cookie);
+                        }
                     }
                 }
                 Ok(event) => {
