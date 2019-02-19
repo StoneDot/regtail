@@ -115,7 +115,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         let mut preceding = "\n";
         if let Some(selected_file_path) = &self.selected_file_path {
             if let Some(selected_file) = self.file_map.get(selected_file_path) {
-                if !self.file_map[selected_file_path].printed_eol() {
+                if !selected_file.printed_eol() {
                     println!();
                 }
             }
