@@ -84,6 +84,12 @@ test!(rename_file, |dir: WorkingDir, mut cmd: Command| {
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.rename_file("file1", "file2");
+
+    // On MacOS, FSEvents cannot handle simultaneous renaming and appending operation
+    if cfg!(target_os = "macos") {
+        sleep(WAIT_TIME);
+    }
+
     dir.append_file("file2", "test2");
     sleep(WAIT_TIME);
     let result = child.exit();
