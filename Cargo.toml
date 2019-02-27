@@ -6,8 +6,8 @@ edition = "2018"
 
 [dependencies]
 notify = "4.0"
-structopt = "0.2"
 walkdir = "2"
 regex = "1"
 lazy_static = "1.2.0"
 pathdiff = "0.1.0"
+clap = "2.32.0"
