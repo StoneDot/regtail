@@ -17,7 +17,8 @@
 #[macro_use]
 extern crate lazy_static;
 
-use structopt::StructOpt;
+#[macro_use]
+extern crate clap;
 
 use opt::Opt;
 use watcher::DirectoryWatcher;
@@ -57,7 +58,8 @@ fn follow(opt: &Opt) -> Result<(), i32> {
 }
 
 fn app() -> i32 {
-    let opt = Opt::from_args();
+    //let opt = Opt::from_args();
+    let opt = Opt::generate();
     follow(&opt).err().unwrap_or(0)
 }
 
