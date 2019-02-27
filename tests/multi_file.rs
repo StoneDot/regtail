@@ -110,15 +110,14 @@ test!(rename_back, |dir: WorkingDir, mut cmd: Command| {
     if cfg!(target_os = "macos") {
         sleep(RENAME_WAIT_TIME);
     }
-
     dir.append_file("file2", "test2");
-    sleep(WAIT_TIME);
-    dir.rename_file("file2", "file1");
-
     if cfg!(target_os = "macos") {
         sleep(RENAME_WAIT_TIME);
     }
-
+    dir.rename_file("file2", "file1");
+    if cfg!(target_os = "macos") {
+        sleep(RENAME_WAIT_TIME);
+    }
     dir.append_file("file1", "test3");
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
