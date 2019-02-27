@@ -29,6 +29,7 @@ mod macros;
 mod utils;
 
 const WAIT_TIME: Duration = Duration::from_millis(200);
+const RENAME_WAIT_TIME: Duration = Duration::from_millis(500);
 
 test!(multi_file_with_eol, |dir: WorkingDir, mut cmd: Command| {
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
@@ -87,7 +88,7 @@ test!(rename_file, |dir: WorkingDir, mut cmd: Command| {
 
     // On MacOS, FSEvents cannot handle simultaneous renaming and appending operation
     if cfg!(target_os = "macos") {
-        sleep(WAIT_TIME);
+        sleep(RENAME_WAIT_TIME);
     }
 
     dir.append_file("file2", "test2");
@@ -97,4 +98,32 @@ test!(rename_file, |dir: WorkingDir, mut cmd: Command| {
     let output = child.output();
     assert_contains!(output, "file1 <==\ntest1\n\n==>");
     assert_contains!(output, "file2 <==\ntest2");
+});
+
+test!(rename_back, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("file1", "test1");
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.rename_file("file1", "file2");
+
+    // On MacOS, FSEvents cannot handle simultaneous renaming and appending operation
+    if cfg!(target_os = "macos") {
+        sleep(RENAME_WAIT_TIME);
+    }
+
+    dir.append_file("file2", "test2");
+    sleep(WAIT_TIME);
+    dir.rename_file("file2", "file1");
+
+    if cfg!(target_os = "macos") {
+        sleep(RENAME_WAIT_TIME);
+    }
+
+    dir.append_file("file1", "test3");
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_contains!(output, "file1 <==\ntest1\n\n==>");
+    assert_contains!(output, "file2 <==\ntest2\n\n==>");
+    assert_contains!(output, "file1 <==\ntest3");
 });
