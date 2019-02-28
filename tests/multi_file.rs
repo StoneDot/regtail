@@ -29,7 +29,15 @@ mod macros;
 mod utils;
 
 const WAIT_TIME: Duration = Duration::from_millis(200);
-const RENAME_WAIT_TIME: Duration = Duration::from_millis(500);
+const RENAME_WAIT_TIME: Duration = Duration::from_millis(1000);
+
+fn sleep_for_rename() {
+    if cfg!(target_os = "macos") {
+        sleep(RENAME_WAIT_TIME);
+    } else {
+        sleep(WAIT_TIME);
+    }
+}
 
 test!(multi__with_eol, |dir: WorkingDir, mut cmd: Command| {
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
@@ -85,12 +93,7 @@ test!(rename, |dir: WorkingDir, mut cmd: Command| {
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.rename_file("file1", "file2");
-
-    // On MacOS, FSEvents cannot handle simultaneous renaming and appending operation
-    if cfg!(target_os = "macos") {
-        sleep(RENAME_WAIT_TIME);
-    }
-
+    sleep_for_rename();
     dir.append_file("file2", "test2");
     sleep(WAIT_TIME);
     let result = child.exit();
@@ -106,18 +109,11 @@ test!(rename_back, |dir: WorkingDir, mut cmd: Command| {
     sleep(WAIT_TIME);
     dir.rename_file("file1", "file2");
 
-    // On MacOS, FSEvents cannot handle simultaneous renaming and appending operation
-    if cfg!(target_os = "macos") {
-        sleep(RENAME_WAIT_TIME);
-    }
+    sleep_for_rename();
     dir.append_file("file2", "test2");
-    if cfg!(target_os = "macos") {
-        sleep(RENAME_WAIT_TIME);
-    }
+    sleep_for_rename();
     dir.rename_file("file2", "file1");
-    if cfg!(target_os = "macos") {
-        sleep(RENAME_WAIT_TIME);
-    }
+    sleep_for_rename();
     dir.append_file("file1", "test3");
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
