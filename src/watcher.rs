@@ -20,16 +20,18 @@ use std::io::{BufWriter, ErrorKind, Stdout};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 
-use notify::{Error as NotifyError, op::Op, raw_watcher, RawEvent, Watcher};
+use notify::{op::Op, raw_watcher, Error as NotifyError, RawEvent, Watcher};
 use pathdiff::diff_paths;
 
 use super::filter::PathFilter;
+use super::tail::{tail, Length, TailState};
 use super::Opt;
-use super::tail::{Length, tail, TailState};
 
-pub struct DirectoryWatcher<T, U> where
+pub struct DirectoryWatcher<T, U>
+where
     T: std::io::Read + std::io::Seek + Length,
-    U: std::io::Write {
+    U: std::io::Write,
+{
     filter: PathFilter,
     current_dir: Option<PathBuf>,
     selected_file_path: Option<PathBuf>,
@@ -133,7 +135,11 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         Self::print_normalized_path(path);
     }
 
-    fn unsubscribe_select_file(self: &mut Self, path: &PathBuf, reader: &TailState<File, BufWriter<Stdout>>) {
+    fn unsubscribe_select_file(
+        self: &mut Self,
+        path: &PathBuf,
+        reader: &TailState<File, BufWriter<Stdout>>,
+    ) {
         if let Some(selected_file_path) = &self.selected_file_path {
             if selected_file_path == path {
                 if !reader.printed_eol() {
@@ -250,7 +256,11 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             let recursive_mode = opt.recursive_mode();
             watcher.watch(watch_path.as_os_str(), recursive_mode)?;
             match rx.recv_timeout(std::time::Duration::from_secs(1)) {
-                Ok(RawEvent { path: Some(mut path), op: Ok(op), cookie }) => {
+                Ok(RawEvent {
+                    path: Some(mut path),
+                    op: Ok(op),
+                    cookie,
+                }) => {
                     path = Self::normalize_path_for_windows(path);
 
                     // On MacOS, some simultaneous operation cannot handle correctly.

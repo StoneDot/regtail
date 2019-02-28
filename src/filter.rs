@@ -30,27 +30,23 @@ impl PathFilter {
         // Create regex filter
         let regex = match Self::generate_filter_regex(&opt) {
             Ok(regex) => regex,
-            Err(error) => {
-                match error {
-                    regex::Error::Syntax(message) => {
-                        eprintln!("invalid regex supplied:\n{}", message);
-                        return Err(1);
-                    }
-                    regex::Error::CompiledTooBig(size) => {
-                        eprintln!("too big regex: {}", size);
-                        return Err(1);
-                    }
-                    regex::Error::__Nonexhaustive => {
-                        eprintln!("unexpected regex supplied");
-                        return Err(1);
-                    }
+            Err(error) => match error {
+                regex::Error::Syntax(message) => {
+                    eprintln!("invalid regex supplied:\n{}", message);
+                    return Err(1);
                 }
-            }
+                regex::Error::CompiledTooBig(size) => {
+                    eprintln!("too big regex: {}", size);
+                    return Err(1);
+                }
+                regex::Error::__Nonexhaustive => {
+                    eprintln!("unexpected regex supplied");
+                    return Err(1);
+                }
+            },
         };
 
-        Ok(PathFilter {
-            regex
-        })
+        Ok(PathFilter { regex })
     }
 
     fn generate_filter_regex(opt: &Opt) -> Result<Regex, regex::Error> {
@@ -63,20 +59,23 @@ impl PathFilter {
     pub fn match_path(self: &PathFilter, path: &Path) -> bool {
         match path.to_str() {
             Some(path_str) => self.regex.is_match(path_str),
-            None => false
+            None => false,
         }
     }
 
-    pub fn filtered_files<'a>(self: &'a PathFilter, opt: &Opt) -> impl Iterator<Item=std::path::PathBuf> + 'a {
+    pub fn filtered_files<'a>(
+        self: &'a PathFilter,
+        opt: &Opt,
+    ) -> impl Iterator<Item = std::path::PathBuf> + 'a {
         let walk_path = opt.watch_path();
         let depth = opt.depth();
-        let walker = WalkDir::new(&walk_path)
-            .sort_by(|l, r| l.path().cmp(r.path()));
+        let walker = WalkDir::new(&walk_path).sort_by(|l, r| l.path().cmp(r.path()));
         let walker = match depth {
             Some(depth) => walker.max_depth(depth),
             None => walker,
         };
-        walker.into_iter()
+        walker
+            .into_iter()
             .filter_map(|e| e.ok())
             .filter_map(move |e: DirEntry| {
                 let path = e.path();

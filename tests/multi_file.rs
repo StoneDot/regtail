@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 use std::process::Command;
 use std::thread;
 use std::time::Duration;

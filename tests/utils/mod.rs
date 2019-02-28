@@ -40,7 +40,7 @@ pub struct WorkingDir {
 impl WorkingDir {
     pub fn create(working_directory: PathBuf) -> Self {
         WorkingDir {
-            parent_path: working_directory
+            parent_path: working_directory,
         }
     }
 
@@ -61,9 +61,12 @@ impl WorkingDir {
         let mut append_file_path = self.parent_path.clone();
         append_file_path.push(relative_path);
         let file_path_str = append_file_path.display().to_string();
-        let mut fh = OpenOptions::new().append(true).open(append_file_path)
+        let mut fh = OpenOptions::new()
+            .append(true)
+            .open(append_file_path)
             .expect(format!("Failed to open '{}' with append mode", file_path_str).as_ref());
-        fh.write_all(content.as_bytes()).expect("Cannot append file");
+        fh.write_all(content.as_bytes())
+            .expect("Cannot append file");
         fh.sync_all().expect("Failed to sync");
     }
 
@@ -85,7 +88,9 @@ impl WorkingDir {
         let mut shrink_file_path = self.parent_path.clone();
         shrink_file_path.push(relative_path);
         let file_path_str = shrink_file_path.display().to_string();
-        let mut fh = OpenOptions::new().write(true).open(shrink_file_path)
+        let mut fh = OpenOptions::new()
+            .write(true)
+            .open(shrink_file_path)
             .expect(format!("Failed to open '{}' with write mode", file_path_str).as_ref());
         fh.write_all(b"").expect("Cannot shrink file");
         fh.sync_all().expect("Failed to sync");
@@ -104,8 +109,7 @@ pub struct RunningCommand {
     child: Child,
 }
 
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum KillStatus {
     AlreadyExited,
     Killed,
@@ -113,22 +117,27 @@ pub enum KillStatus {
 
 impl RunningCommand {
     pub fn create(child: Child) -> Self {
-        RunningCommand {
-            child
-        }
+        RunningCommand { child }
     }
 
     pub fn exit(self: &mut Self) -> KillStatus {
-        let kill_result = self.child.kill().err().map_or(KillStatus::Killed, |_| {
-            KillStatus::AlreadyExited
-        });
+        let kill_result = self
+            .child
+            .kill()
+            .err()
+            .map_or(KillStatus::Killed, |_| KillStatus::AlreadyExited);
         self.child.wait().unwrap();
         kill_result
     }
 
     pub fn output(self: &mut Self) -> String {
         let mut output = String::new();
-        let _size = self.child.stdout.as_mut().unwrap().read_to_string(&mut output);
+        let _size = self
+            .child
+            .stdout
+            .as_mut()
+            .unwrap()
+            .read_to_string(&mut output);
         output
     }
 }

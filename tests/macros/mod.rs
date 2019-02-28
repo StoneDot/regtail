@@ -25,18 +25,21 @@ macro_rules! test {
 }
 
 macro_rules! assert_contains {
-    ($haystack:expr, $needle:expr) => ({
+    ($haystack:expr, $needle:expr) => {{
         match (&$haystack, &$needle) {
             (haystack, needle) => {
                 if !haystack.contains(needle) {
-                    panic!(r#"assertion failed: `(haystack contains needle)`
+                    panic!(
+                        r#"assertion failed: `(haystack contains needle)`
    needle: `{:?}`,
- haystack: `{:?}`"#, needle, haystack)
+ haystack: `{:?}`"#,
+                        needle, haystack
+                    )
                 }
             }
         }
-    });
-    ($haystack:expr, $needle:expr,) => ({
+    }};
+    ($haystack:expr, $needle:expr,) => {{
         assert_contains!($haystack, $needle)
-    });
+    }};
 }
