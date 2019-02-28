@@ -19,9 +19,9 @@ use std::thread;
 use std::time::Duration;
 use thread::sleep;
 
+use utils::KillStatus;
 use utils::RunningCommand;
 use utils::WorkingDir;
-use utils::KillStatus;
 
 #[macro_use]
 mod macros;

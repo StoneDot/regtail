@@ -34,9 +34,11 @@ impl Length for std::fs::File {
     }
 }
 
-pub struct TailState<T, U> where
+pub struct TailState<T, U>
+where
     T: Read + Seek + Length,
-    U: Write {
+    U: Write,
+{
     reader: T,
     writer: U,
     reader_seek_pos: u64,
@@ -56,9 +58,11 @@ impl TailState<std::fs::File, io::BufWriter<Stdout>> {
     }
 }
 
-impl<T, U> TailState<T, U> where
+impl<T, U> TailState<T, U>
+where
     T: Read + Seek + Length,
-    U: Write {
+    U: Write,
+{
     pub fn read(&mut self, mut buf: &mut [u8]) -> Result<usize> {
         let read_size = self.reader.read(&mut buf);
         if let Ok(read_size) = read_size {
@@ -88,7 +92,9 @@ impl<T, U> TailState<T, U> where
         self.reader.len()
     }
 
-    pub fn printed_eol(self: &Self) -> bool { self.printed_eol }
+    pub fn printed_eol(self: &Self) -> bool {
+        self.printed_eol
+    }
 
     fn tail_start_position(self: &mut Self, tail_count: u64) -> Result<u64> {
         let mut buffer = [0u8; BUFFER_SIZE];
@@ -214,10 +220,11 @@ impl<T, U> TailState<T, U> where
     }
 }
 
-fn tail_from_reader<T, U>(reader: &mut TailState<T, U>, tail_count: u64)
-                          -> Result<u64> where
+fn tail_from_reader<T, U>(reader: &mut TailState<T, U>, tail_count: u64) -> Result<u64>
+where
     T: Read + Seek + Length,
-    U: Write {
+    U: Write,
+{
     let offset = reader.tail_start_position(tail_count)?;
     reader.seek_with_shrink_handling(offset)?;
     reader.dump_to_tail()
@@ -235,8 +242,8 @@ mod tests {
     use std::io::Cursor;
     use std::io::Result;
 
-    use super::Length;
     use super::tail_from_reader;
+    use super::Length;
     use super::TailState;
 
     const CONTENT: &str = r#"line1
@@ -259,8 +266,10 @@ line5"#;
     }
 
     impl TailState<Cursor<&[u8]>, &mut Vec<u8>> {
-        pub fn from_slice<'a>(reader: Cursor<&'a [u8]>, writer: &'a mut Vec<u8>)
-                              -> Result<TailState<Cursor<&'a [u8]>, &'a mut Vec<u8>>> {
+        pub fn from_slice<'a>(
+            reader: Cursor<&'a [u8]>,
+            writer: &'a mut Vec<u8>,
+        ) -> Result<TailState<Cursor<&'a [u8]>, &'a mut Vec<u8>>> {
             Ok(TailState {
                 reader,
                 writer,
@@ -271,15 +280,13 @@ line5"#;
     }
 
     macro_rules! tail_state_test {
-        ( $variable:ident, |$target:ident, $writer:ident| $closure:expr) => {
-            {
-                let content = $variable;
-                let reader = Cursor::new(content.as_bytes());
-                let mut $writer: Vec<u8> = Vec::new();
-                let mut $target = TailState::from_slice(reader, &mut $writer).unwrap();
-                $closure;
-            }
-        };
+        ( $variable:ident, |$target:ident, $writer:ident| $closure:expr) => {{
+            let content = $variable;
+            let reader = Cursor::new(content.as_bytes());
+            let mut $writer: Vec<u8> = Vec::new();
+            let mut $target = TailState::from_slice(reader, &mut $writer).unwrap();
+            $closure;
+        }};
     }
 
     #[test]

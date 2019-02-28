@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
+use clap::{self, Arg};
 use std::path::PathBuf;
 use std::str::FromStr;
-use clap::{self, Arg};
 
 use notify::RecursiveMode;
 
 lazy_static! {
-    static ref CURRENT_DIR: PathBuf = {
-        PathBuf::from_str(".").unwrap()
-    };
+    static ref CURRENT_DIR: PathBuf = { PathBuf::from_str(".").unwrap() };
 }
 
 pub struct Opt {
@@ -37,53 +35,76 @@ pub struct Opt {
 impl Opt {
     pub fn generate() -> Opt {
         let matches = app_from_crate!()
-            .arg(Arg::with_name("recursive")
-                .short("r")
-                .long("recursive")
-                .help("Enable recursive watch"))
-            .arg(Arg::with_name("regex")
-                .short("e")
-                .long("regex")
-                .help("Regex to filter target files")
-                .allow_hyphen_values(true)
-                .takes_value(true))
-            .arg(Arg::with_name("path")
-                .short("p")
-                .long("path")
-                .help("Target directory to process")
-                .takes_value(true))
-            .arg(Arg::with_name("depth")
-                .short("d")
-                .help("Maximum recursive depth")
-                .requires("recursive")
-                .takes_value(true))
-            .arg(Arg::with_name("lines")
-                .short("l")
-                .help("Lines to show")
-                .default_value("10")
-                .takes_value(true))
-            .arg(Arg::with_name("REGEX")
-                .help("Regex to filter target files")
-                .required(false)
-                .index(1)
-                .conflicts_with("regex")
-                .takes_value(true))
-            .arg(Arg::with_name("PATH")
-                .help("Target directory to process")
-                .required(false)
-                .index(2)
-                .conflicts_with("path")
-                .takes_value(true))
+            .arg(
+                Arg::with_name("recursive")
+                    .short("r")
+                    .long("recursive")
+                    .help("Enable recursive watch"),
+            )
+            .arg(
+                Arg::with_name("regex")
+                    .short("e")
+                    .long("regex")
+                    .help("Regex to filter target files")
+                    .allow_hyphen_values(true)
+                    .takes_value(true),
+            )
+            .arg(
+                Arg::with_name("path")
+                    .short("p")
+                    .long("path")
+                    .help("Target directory to process")
+                    .takes_value(true),
+            )
+            .arg(
+                Arg::with_name("depth")
+                    .short("d")
+                    .help("Maximum recursive depth")
+                    .requires("recursive")
+                    .takes_value(true),
+            )
+            .arg(
+                Arg::with_name("lines")
+                    .short("l")
+                    .help("Lines to show")
+                    .default_value("10")
+                    .takes_value(true),
+            )
+            .arg(
+                Arg::with_name("REGEX")
+                    .help("Regex to filter target files")
+                    .required(false)
+                    .index(1)
+                    .conflicts_with("regex")
+                    .takes_value(true),
+            )
+            .arg(
+                Arg::with_name("PATH")
+                    .help("Target directory to process")
+                    .required(false)
+                    .index(2)
+                    .conflicts_with("path")
+                    .takes_value(true),
+            )
             .get_matches();
         Opt {
             lines: value_t!(matches, "lines", u64).unwrap_or_else(|e| e.exit()),
             recursive: matches.is_present("recursive"),
-            depth: value_t!(matches.value_of("depth"), usize).map(|x| Some(x)).unwrap_or_else(|e|
-                if e.kind == clap::ErrorKind::ArgumentNotFound { None } else { e.exit() }),
-            regex: matches.value_of("regex")
+            depth: value_t!(matches.value_of("depth"), usize)
+                .map(|x| Some(x))
+                .unwrap_or_else(|e| {
+                    if e.kind == clap::ErrorKind::ArgumentNotFound {
+                        None
+                    } else {
+                        e.exit()
+                    }
+                }),
+            regex: matches
+                .value_of("regex")
                 .map(|x| x.to_owned())
                 .or_else(|| matches.value_of("REGEX").map(|x| x.to_owned())),
-            path: matches.value_of_os("path")
+            path: matches
+                .value_of_os("path")
                 .map(|x| PathBuf::from(x))
                 .or_else(|| matches.value_of_os("PATH").map(|x| PathBuf::from(x))),
         }
