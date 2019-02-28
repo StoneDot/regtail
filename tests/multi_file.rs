@@ -114,6 +114,7 @@ test!(rename_back, |dir: WorkingDir, mut cmd: Command| {
     dir.rename_file("file2", "file1");
     sleep_for_rename();
     dir.append_file("file1", "test3");
+    sleep(WAIT_TIME);
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
