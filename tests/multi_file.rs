@@ -38,7 +38,7 @@ fn sleep_for_rename() {
     }
 }
 
-test!(multi__with_eol, |dir: WorkingDir, mut cmd: Command| {
+test!(multi_with_eol, |dir: WorkingDir, mut cmd: Command| {
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.put_file("file1", "test1!\n");
