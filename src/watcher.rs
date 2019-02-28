@@ -36,7 +36,7 @@ where
     current_dir: Option<PathBuf>,
     selected_file_path: Option<PathBuf>,
     file_map: HashMap<PathBuf, TailState<T, U>>,
-    renaming_map: HashMap<u32, TailState<T, U>>,
+    renaming_map: HashMap<u32, Option<TailState<T, U>>>,
 }
 
 impl DirectoryWatcher<File, BufWriter<Stdout>> {
@@ -196,20 +196,31 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
     fn handle_rename(self: &mut Self, path: PathBuf, cookie: Option<u32>) {
         if let Some(cookie) = cookie {
             match self.renaming_map.remove(&cookie) {
-                Some(file) => {
-                    // Just ignore if the new path is not match regex
-                    if !self.filter.match_path(&path) {
-                        return;
-                    }
+                Some(file) => match file {
+                    Some(file) => {
+                        // Just ignore if the new path is not match regex
+                        if !self.filter.match_path(&path) {
+                            return;
+                        }
 
-                    // New path supplied
-                    self.file_map.insert(path, file);
-                }
+                        // New path supplied
+                        self.file_map.insert(path, file);
+                    }
+                    None => {
+                        // This is maybe duplication request
+                        // Just ignore
+                    }
+                },
                 None => {
                     // Old path supplied
-                    if let Some(file) = self.file_map.remove(&path) {
-                        self.unsubscribe_select_file(&path, &file);
-                        self.renaming_map.insert(cookie, file);
+                    match self.file_map.remove(&path) {
+                        Some(file) => {
+                            self.unsubscribe_select_file(&path, &file);
+                            self.renaming_map.insert(cookie, Some(file));
+                        }
+                        None => {
+                            self.renaming_map.insert(cookie, None);
+                        }
                     }
                 }
             }
