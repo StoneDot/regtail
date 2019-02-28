@@ -31,7 +31,7 @@ mod utils;
 const WAIT_TIME: Duration = Duration::from_millis(200);
 const RENAME_WAIT_TIME: Duration = Duration::from_millis(500);
 
-test!(multi_file_with_eol, |dir: WorkingDir, mut cmd: Command| {
+test!(multi__with_eol, |dir: WorkingDir, mut cmd: Command| {
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.put_file("file1", "test1!\n");
@@ -47,7 +47,7 @@ test!(multi_file_with_eol, |dir: WorkingDir, mut cmd: Command| {
     assert_contains!(output, " <==\ntest2!\n");
 });
 
-test!(multi_file_without_eol, |dir: WorkingDir, mut cmd: Command| {
+test!(multi_without_eol, |dir: WorkingDir, mut cmd: Command| {
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.put_file("file1", "test1!");
@@ -63,7 +63,7 @@ test!(multi_file_without_eol, |dir: WorkingDir, mut cmd: Command| {
     assert_contains!(output, " <==\ntest2!");
 });
 
-test!(multi_file_alread_exist_file, |dir: WorkingDir, mut cmd: Command| {
+test!(multi_alread_exist, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file1", "test1!\n");
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
@@ -80,7 +80,7 @@ test!(multi_file_alread_exist_file, |dir: WorkingDir, mut cmd: Command| {
     assert_contains!(output, "file2 <==\ntest3!\n");
 });
 
-test!(rename_file, |dir: WorkingDir, mut cmd: Command| {
+test!(rename, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file1", "test1");
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
