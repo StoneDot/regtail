@@ -42,6 +42,7 @@ test!(simple_run, |dir: WorkingDir, mut cmd: Command| {
 
 test!(append_content, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("appended", "line1\nline2\nline3");
+    sleep(WAIT_TIME);
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.append_file("appended", "\nline4\nline5\n");
@@ -54,6 +55,7 @@ test!(append_content, |dir: WorkingDir, mut cmd: Command| {
 
 test!(rm_append, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("removed_file", "line1\n");
+    sleep(WAIT_TIME);
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.remove_file("removed_file");
@@ -75,6 +77,7 @@ test!(rm_append, |dir: WorkingDir, mut cmd: Command| {
 
 test!(double_append, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("double", "line1\n");
+    sleep(WAIT_TIME);
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.append_file("double", "line2");
@@ -89,6 +92,7 @@ test!(double_append, |dir: WorkingDir, mut cmd: Command| {
 
 test!(shrink_append, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("replaced", "line1\n");
+    sleep(WAIT_TIME);
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.shrink_file("replaced");
