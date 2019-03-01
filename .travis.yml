@@ -19,7 +19,8 @@ script:
   - RUST_BACKTRACE=1 cargo test --verbose --all
 before_deploy:
   - cargo build --release --verbose --all
-  - PACKAGE_NAME=regtail-${TRAVIS_TAG}-${TRAVIS_RUST_VERSION}
+  - TARGET=$(rustup target list | grep default | awk '{print $1}')
+  - PACKAGE_NAME=regtail-${TRAVIS_TAG}-${TARGET}
   - mkdir ${PACKAGE_NAME}
   - cp target/release/regtail LICENSE README.md ${PACKAGE_NAME}
   - tar czf ${PACKAGE_NAME}.tar.gz ${PACKAGE_NAME}
@@ -27,9 +28,10 @@ deploy:
   provider: releases
   api_key:
     secure: FCOLjxc5+74I8mjtjHoxKlrrpffPP7fXjVoUEhlW7CNMhjv/ZbcGyMNZRtZ+OojIUqA6XcdsFNYBaXEwEUjUP835aiGo6gcpOq9SjFNkZZJ5QmZ6WgcmZQPnFkQ4rwMW0/2Mnj81c2MIbeN3B1cJrM7JzZDR8FGf/2tjrIoILMOUMgUUGcn1xNDqZpNnBuQnx1Z0Tdhm24ekDI3q4rMtEtoKC3yXNJ5UYBb5xxI1EwUnbLUCE7pSOFpCU6gr00jyPcMHaU+lwS9u9WVGFBw6fJ2wpYx1+SyS0NIa8sWBucVf72/jovOJLIQFb3OQi+IAvT1H1Pcpt6hCB7P2OSubBi0nUIQCtHKoZrRGzkQU4gHZTDjNj7aSYx1yZ22RQIuY6qfHHMOGSmCLXEB2AW6TlNdgJNyQ0n9smwVhVsgX7nb36zwkKZi79LJvnM/qhHT4YNY+rKc5KxC0yTBLypKLprkOejsUbr/oz05r7A6dU6SRQnoqdeB8h60HmS9NTm+VhJC1gbftHxzKpVS/ktNZC97gcHLQ3R/em9cNF9m9ktkRF93XFUSYYfOt0aqLk7Mci5cZViQm8ORhNqPDZg4sQ/hbIXH9DXitwzlcU+KCE7hqIacwl/58sl3kEp5Ies5ssuI/zdZAX/HwPIBvIupmK1AbA77t7ZcLVcotKoe87X4=
-  file: regtail-${TRAVIS_TAG}-${TRAVIS_RUST_VERSION}.tar.gz
+  file: regtail-${TRAVIS_TAG}-${TARGET}.tar.gz
   on:
     repo: StoneDot/regtail
     tags: true
+    condition: ${TRAVIS_RUST_VERSION} = stable
   skip_cleanup: true
   draft: true
