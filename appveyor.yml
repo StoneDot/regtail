@@ -123,7 +123,7 @@ before_deploy:
   - mkdir staging
   - cp target\release\regtail LICENSE README.md staging
   - cd staging
-  - 7z ..\%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%target%.zip *
+  - 7z a ..\%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%target%.zip *
   - appveyor PushArtifact ..\%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%target%.zip
 
 deploy:
