@@ -90,7 +90,7 @@ test!(multi_alread_exist, |dir: WorkingDir, mut cmd: Command| {
 
 test!(rename, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file1", "test1");
-    sleep(WAIT_TIME);
+    sleep_for_rename();
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.rename_file("file1", "file2");
