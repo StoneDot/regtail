@@ -72,6 +72,7 @@ test!(multi_without_eol, |dir: WorkingDir, mut cmd: Command| {
 
 test!(multi_alread_exist, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file1", "test1!\n");
+    sleep(WAIT_TIME);
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.append_file("file1", "test2!\n");
@@ -89,6 +90,7 @@ test!(multi_alread_exist, |dir: WorkingDir, mut cmd: Command| {
 
 test!(rename, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file1", "test1");
+    sleep(WAIT_TIME);
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.rename_file("file1", "file2");
@@ -104,6 +106,7 @@ test!(rename, |dir: WorkingDir, mut cmd: Command| {
 
 test!(rename_back, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file1", "test1");
+    sleep(WAIT_TIME);
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.rename_file("file1", "file2");
