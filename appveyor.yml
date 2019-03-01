@@ -41,47 +41,47 @@ environment:
     ### MSVC Toolchains ###
 
     # Stable 64-bit MSVC
-    - channel: stable
-      target: x86_64-pc-windows-msvc
+    - CHANNEL: stable
+      TARGET: x86_64-pc-windows-msvc
     # Stable 32-bit MSVC
-    - channel: stable
-      target: i686-pc-windows-msvc
+    - CHANNEL: stable
+      TARGET: i686-pc-windows-msvc
     # Beta 64-bit MSVC
-    - channel: beta
-      target: x86_64-pc-windows-msvc
+    - CHANNEL: beta
+      TARGET: x86_64-pc-windows-msvc
     # Beta 32-bit MSVC
-    - channel: beta
-      target: i686-pc-windows-msvc
+    - CHANNEL: beta
+      TARGET: i686-pc-windows-msvc
     # Nightly 64-bit MSVC
-    - channel: nightly
-      target: x86_64-pc-windows-msvc
+    - CHANNEL: nightly
+      TARGET: x86_64-pc-windows-msvc
       #cargoflags: --features "unstable"
     # Nightly 32-bit MSVC
-    - channel: nightly
-      target: i686-pc-windows-msvc
+    - CHANNEL: nightly
+      TARGET: i686-pc-windows-msvc
       #cargoflags: --features "unstable"
 
     ### GNU Toolchains ###
 
     # Stable 64-bit GNU
-    - channel: stable
-      target: x86_64-pc-windows-gnu
+    - CHANNEL: stable
+      TARGET: x86_64-pc-windows-gnu
     # Stable 32-bit GNU
-    - channel: stable
-      target: i686-pc-windows-gnu
+    - CHANNEL: stable
+      TARGET: i686-pc-windows-gnu
     # Beta 64-bit GNU
-    - channel: beta
-      target: x86_64-pc-windows-gnu
+    - CHANNEL: beta
+      TARGET: x86_64-pc-windows-gnu
     # Beta 32-bit GNU
-    - channel: beta
-      target: i686-pc-windows-gnu
+    - CHANNEL: beta
+      TARGET: i686-pc-windows-gnu
     # Nightly 64-bit GNU
-    - channel: nightly
-      target: x86_64-pc-windows-gnu
+    - CHANNEL: nightly
+      TARGET: x86_64-pc-windows-gnu
       #cargoflags: --features "unstable"
     # Nightly 32-bit GNU
-    - channel: nightly
-      target: i686-pc-windows-gnu
+    - CHANNEL: nightly
+      TARGET: i686-pc-windows-gnu
       #cargoflags: --features "unstable"
 
 ### Allowed failures ###
@@ -92,7 +92,7 @@ environment:
 matrix:
   fast_finish: true
   allow_failures:
-    - channel: nightly
+    - CHANNEL: nightly
 
     # If you only care about stable channel build failures, uncomment the following line:
     #- channel: beta
@@ -107,7 +107,7 @@ matrix:
 # default-toolchain and default-host manually here.
 install:
   - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
-  - rustup-init -yv --default-toolchain %channel% --default-host %target%
+  - rustup-init -yv --default-toolchain %CHANNEL% --default-host %TARGET%
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - rustc -vV
   - cargo -vV
@@ -123,8 +123,8 @@ before_deploy:
   - mkdir staging
   - cp target\release\regtail LICENSE README.md staging
   - cd staging
-  - 7z a ..\%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%target%.zip *
-  - appveyor PushArtifact ..\%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%target%.zip
+  - 7z a ..\%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.zip *
+  - appveyor PushArtifact ..\%PROJECT_NAME%-%APPVEYOR_REPO_TAG_NAME%-%TARGET%.zip
 
 deploy:
   - description: 'Automatically deployed release'
@@ -137,7 +137,7 @@ deploy:
     on:
       branch: master
       APPVEYOR_REPO_TAG: true
-      channel: stable
+      CHANNEL: stable
 
 # Uses 'cargo test' to run tests and build. Alternatively, the project may call compiled programs
 #directly or perform other testing commands. Rust will automatically be placed in the PATH
