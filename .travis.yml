@@ -28,7 +28,7 @@ install:
   - set | egrep '^TARGET' || TARGET=$(rustup target list | grep default | awk '{print $1}')
   - rustup target add ${TARGET}
 script:
-  - RUST_BACKTRACE=1 cargo test --verbose --all
+  - RUST_BACKTRACE=1 cargo test --verbose --all --target ${TARGET}
 before_deploy:
   - cargo build --release --verbose --all --target ${TARGET}
   - PACKAGE_NAME=regtail-${TRAVIS_TAG}-${TARGET}
