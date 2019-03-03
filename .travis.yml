@@ -33,7 +33,7 @@ addons:
     packages:
       - libc6-dev
       - libc6-dev-i386
-      - libgcc-5-dev
+      - libgcc-5-dev:i386
 install:
   - set | egrep '^TARGET' || TARGET=$(rustup target list | grep default | awk '{print $1}')
   - rustup target add ${TARGET}
