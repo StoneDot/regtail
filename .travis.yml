@@ -15,14 +15,25 @@ matrix:
       rust: beta
     - os: osx
       rust: nightly
+    - dist: xenial
+      rust: stable
+      env: TARGET=i686-unknown-linux-gnu
+    - dist: xenial
+      rust: stable
+      env: TARGET=x86_64-unknown-linux-musl
+    - os: osx
+      rust: stable
+      env: TARGET=i686-apple-darwin
+install:
+  - set | egrep '^TARGET' || TARGET=$(rustup target list | grep default | awk '{print $1}')
+  - rustup target add ${TARGET}
 script:
   - RUST_BACKTRACE=1 cargo test --verbose --all
 before_deploy:
-  - cargo build --release --verbose --all
-  - TARGET=$(rustup target list | grep default | awk '{print $1}')
+  - cargo build --release --verbose --all --target ${TARGET}
   - PACKAGE_NAME=regtail-${TRAVIS_TAG}-${TARGET}
   - mkdir ${PACKAGE_NAME}
-  - cp target/release/regtail LICENSE README.md ${PACKAGE_NAME}
+  - cp target/${TARGET}/release/regtail LICENSE README.md ${PACKAGE_NAME}
   - tar czf ${PACKAGE_NAME}.tar.gz ${PACKAGE_NAME}
 deploy:
   provider: releases
