@@ -27,7 +27,7 @@ use utils::WorkingDir;
 mod macros;
 mod utils;
 
-const WAIT_TIME: Duration = Duration::from_millis(200);
+const WAIT_TIME: Duration = Duration::from_millis(400);
 const RENAME_WAIT_TIME: Duration = Duration::from_millis(1000);
 
 fn sleep_for_rename() {
