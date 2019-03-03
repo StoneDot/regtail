@@ -24,6 +24,11 @@ matrix:
     - os: osx
       rust: stable
       env: TARGET=i686-apple-darwin
+addons:
+  apt:
+    update: true
+    packages:
+      - libc6-dev
 install:
   - set | egrep '^TARGET' || TARGET=$(rustup target list | grep default | awk '{print $1}')
   - rustup target add ${TARGET}
