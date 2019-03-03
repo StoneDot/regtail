@@ -28,7 +28,7 @@ mod macros;
 mod utils;
 
 const WAIT_TIME: Duration = Duration::from_millis(400);
-const RENAME_WAIT_TIME: Duration = Duration::from_millis(1000);
+const RENAME_WAIT_TIME: Duration = Duration::from_millis(2000);
 
 fn sleep_for_rename() {
     if cfg!(target_os = "macos") {
