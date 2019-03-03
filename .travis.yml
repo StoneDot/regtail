@@ -18,6 +18,11 @@ matrix:
     - os: linux
       rust: stable
       env: TARGET=i686-unknown-linux-gnu LD_LIBRARY_PATH=/usr/lib32:$LD_LIBRARY_PATH
+      addons:
+        apt:
+          update: true
+          packages:
+            - gcc-multilib
     - os: linux
       rust: stable
       env: TARGET=x86_64-unknown-linux-musl
