@@ -34,6 +34,7 @@ addons:
       - libc6-dev
       - libc6-dev-i386
       - lib32gcc1
+      - lib32gcc1-dbg
 install:
   - set | egrep '^TARGET' || TARGET=$(rustup target list | grep default | awk '{print $1}')
   - rustup target add ${TARGET}
