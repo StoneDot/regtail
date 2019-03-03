@@ -15,26 +15,18 @@ matrix:
       rust: beta
     - os: osx
       rust: nightly
-    - dist: xenial
+    - os: linux
       rust: stable
-      env: TARGET=i686-unknown-linux-gnu
-    - dist: xenial
+      env: TARGET=i686-unknown-linux-gnu LD_LIBRARY_PATH=/usr/lib32:$LD_LIBRARY_PATH
+    - os: linux
       rust: stable
       env: TARGET=x86_64-unknown-linux-musl
-    - dist: xenial
+    - os: linux
       rust: stable
       env: TARGET=i686-unknown-linux-musl
     - os: osx
       rust: stable
       env: TARGET=i686-apple-darwin
-addons:
-  apt:
-    update: true
-    packages:
-      - libc6-dev
-      - libc6-dev-i386
-      - lib32gcc1
-      - lib32gcc1-dbg
 install:
   - set | egrep '^TARGET' || TARGET=$(rustup target list | grep default | awk '{print $1}')
   - rustup target add ${TARGET}
