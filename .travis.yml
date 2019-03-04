@@ -55,7 +55,7 @@ script:
   - test -n "${NO_TEST}" || RUST_BACKTRACE=1 cargo test --verbose --all --target ${TARGET}
 before_deploy:
   - mkdir -p .cargo
-  - test -n "${LINKER}" || echo -e "[target.${TARGET}]\nlinker = ${LINKER}\nar = ${AR}" >> .cargo/config
+  - test -n "${LINKER}" || echo -e "[target.${TARGET}]\nlinker = \"${LINKER}\"\nar = \"${AR}\"\n" >> .cargo/config
   - cargo build --release --verbose --all --target ${TARGET}
   - PACKAGE_NAME=regtail-${TRAVIS_TAG}-${TARGET}
   - mkdir ${PACKAGE_NAME}
