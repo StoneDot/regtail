@@ -39,6 +39,7 @@ matrix:
         apt:
           update: true
           packages:
+            - libc6-dev-amd64
             - gcc-aarch64-linux-gnu
     - os: linux
       rust: stable
@@ -47,6 +48,7 @@ matrix:
         apt:
           update: true
           packages:
+            - libc6-dev-armhf-cross
             - gcc-arm-linux-gnueabihf
 install:
   - set | egrep '^TARGET' || TARGET=$(rustup target list | grep default | awk '{print $1}')
