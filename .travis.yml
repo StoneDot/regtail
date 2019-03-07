@@ -39,7 +39,7 @@ matrix:
         apt:
           update: true
           packages:
-            - libc6-dev-amd64
+            - libc6-dev-arm64-cross
             - gcc-aarch64-linux-gnu
     - os: linux
       rust: stable
