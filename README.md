@@ -5,6 +5,11 @@ Regex base tail written in Rust.
 [![Build status](https://ci.appveyor.com/api/projects/status/4ms5u2h1q0pspovx/branch/master?svg=true)](https://ci.appveyor.com/project/StoneDot/regtail/branch/master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+## Documentation quick links
+
+* [Why regtail?](#why-regtail)
+* [Installation](#installation)
+
 # Why regtail?
 `tail -F` is very common way to monitor log files.
 Although it requires specify the monitored files before it's launched as below.
@@ -70,3 +75,28 @@ This is error.20190101
 ```
 
 Regtail is the perfect way to monitor your log files in all situation, isn't it?
+
+## Installation
+### Homebrew
+```bash
+brew tap StoneDot/regtail
+brew install regtail
+```
+
+### Binary
+```bash
+# Linux x86_64
+wget https://github.com/StoneDot/regtail/releases/download/v0.0.1/regtail-v0.0.1-x86_64-unknown-linux-gnu.tar.gz
+tar zxf regtail-v0.0.1-x86_64-unknown-linux-gnu.tar.gz
+cd regtail-v0.0.1-x86_64-unknown-linux-gnu
+sudo cp regtail /usr/local/bin
+```
+
+### Source build
+```bash
+wget https://github.com/StoneDot/regtail/archive/v0.0.1.tar.gz
+tar zxf v0.0.1.tar.gz
+cd regtail-0.0.1
+cargo install --root $HOME --path .
+export PATH="$HOME/bin:$PATH"
+```
