@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use std::cell::{RefCell, RefMut};
+use std::cell::RefCell;
 use std::cmp::max;
 use std::fs::File;
 use std::hash::Hash;
@@ -29,24 +29,78 @@ use lru::LruCache;
 const BUFFER_SIZE: usize = 8 * 1024;
 const BUFFER_LEN: u64 = BUFFER_SIZE as u64;
 
-pub struct TransparentReader<K, T> where
-    K: Hash + Eq,
-    T: Read + Seek + Length {
-    reader_repository: Rc<RefCell<LruCache<K, Rc<RefCell<T>>>>>,
-    reader_key: K,
-    reader_cache: Weak<RefCell<T>>,
+trait ReaderCreator<K, T> {
+    fn create_reader(self: &mut Self, path: &K) -> Result<T>;
 }
 
-impl<K, T> TransparentReader<K, T> where
-    K: Hash + Eq,
-    T: Read + Seek + Length {
-    pub fn reader(self: &Self) -> Rc<RefCell<T>> {
+struct FileCreator;
+
+impl ReaderCreator<PathBuf, File> for FileCreator {
+    fn create_reader(self: &mut Self, path: &PathBuf) -> Result<File> {
+        File::open(path)
+    }
+}
+
+pub struct TransparentReader<K, T>
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+{
+    reader_repository: Rc<RefCell<LruCache<K, Rc<RefCell<T>>>>>,
+    path: K,
+    reader_seek_pos: u64,
+    reader_cache: Weak<RefCell<T>>,
+    reader_creator: ReaderCreator<K, T>,
+}
+
+impl<K, T> TransparentReader<K, T>
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+{
+    pub fn reader(self: &mut Self) -> Result<Rc<RefCell<T>>> {
         let reader = self.reader_cache.upgrade();
         if let Some(x) = reader {
-            return x;
+            return Ok(x);
         }
-        let reader = self.reader_repository.borrow_mut().pop(&self.reader_key);
-        return reader.unwrap();
+        let mut reader_cache = self.reader_repository.borrow_mut();
+        match reader_cache.get(&self.path) {
+            Some(reader) => Ok(reader.to_owned()),
+            None => {
+                let file = self.reader_creator.create_reader(&self.path)?;
+                reader_cache.put(self.path.clone(), Rc::new(RefCell::new(file)));
+                Ok(reader_cache.get(&self.path).unwrap().to_owned())
+            }
+        }
+    }
+}
+
+impl<K, T> Read for TransparentReader<K, T>
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+{
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        let rc_reader = self.reader()?;
+        let mut reader = rc_reader.borrow_mut();
+        reader.read(buf)
+    }
+}
+
+impl<K, T> Seek for TransparentReader<K, T>
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+{
+    fn seek(&mut self, pos: SeekFrom) -> Result<u64> {
+        let rc_reader = self.reader()?;
+        let mut reader = rc_reader.borrow_mut();
+        if let SeekFrom::Current(_) = pos {
+            reader.seek(SeekFrom::Start(self.reader_seek_pos))?;
+            reader.seek(pos)
+        } else {
+            reader.seek(pos)
+        }
     }
 }
 
@@ -274,8 +328,8 @@ mod tests {
     use std::io::Cursor;
     use std::io::Result;
 
-    use super::tail_from_reader;
     use super::Length;
+    use super::tail_from_reader;
     use super::TailState;
 
     const CONTENT: &str = r#"line1
