@@ -65,11 +65,11 @@ where
         }
         let mut reader_cache = self.reader_repository.borrow_mut();
         match reader_cache.get(&self.path) {
-            Some(reader) => Ok(reader.to_owned()),
+            Some(reader) => Ok(Rc::clone(reader)),
             None => {
                 let file = self.reader_creator.create_reader(&self.path)?;
                 reader_cache.put(self.path.clone(), Rc::new(RefCell::new(file)));
-                Ok(reader_cache.get(&self.path).unwrap().to_owned())
+                Ok(Rc::clone(reader_cache.get(&self.path).unwrap()))
             }
         }
     }
