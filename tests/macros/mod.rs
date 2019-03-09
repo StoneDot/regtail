@@ -43,3 +43,20 @@ macro_rules! assert_contains {
         assert_contains!($haystack, $needle)
     }};
 }
+
+macro_rules! assert_not_contains {
+    ($haystack:expr, $needle:expr) => {{
+        match (&$haystack, &$needle) {
+            (haystack, needle) => {
+                if haystack.contains(needle) {
+                    panic!(
+                        r#"assertion failed: `(haystack not contains needle)`
+   needle: `{:?}`,
+ haystack: `{:?}`"#,
+                        needle, haystack
+                    )
+                }
+            }
+        }
+    }}
+}

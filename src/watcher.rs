@@ -16,7 +16,7 @@
 
 use std::collections::{HashMap, VecDeque};
 use std::fs::File;
-use std::io::{BufWriter, ErrorKind, Stdout};
+use std::io::{self, BufWriter, ErrorKind, Stdout};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 
@@ -84,6 +84,11 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             return PathBuf::from(path);
         }
         canonical_path
+    }
+
+    fn canonicalize_path(path: &PathBuf) -> io::Result<PathBuf> {
+        let canonical_path = path.canonicalize()?;
+        Ok(Self::normalize_path_for_windows(canonical_path))
     }
 
     fn pending_delete_file(path: &Path) -> bool {
@@ -237,27 +242,36 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         let (tx, rx) = channel();
         let mut watcher = raw_watcher(tx)?;
 
-        let mut prev_reader: Option<&TailState<File, BufWriter<Stdout>>> = None;
-        for path in self.filter.filtered_files(&opt) {
-            if self.selected_file_path.is_some() {
-                // If there is a previous file and its last byte is not \n,
-                // put \n for consistent result.
-                if let Some(reader) = prev_reader {
-                    if !reader.printed_eol() {
-                        println!();
-                    }
-                }
 
-                println!();
+        // Empty tailing consideration
+        if opt.lines == 0 {
+            for path in self.filter.filtered_files(&opt) {;
+                let reader = tail(&PathBuf::from(&path), 0)?;
+                let canonical_path = Self::canonicalize_path(&path)?;
+                self.file_map.insert(canonical_path.to_owned(), reader);
             }
-            Self::print_normalized_path(&path);
-            let reader = tail(&PathBuf::from(&path), opt.lines)?;
-            let mut canonical_path = path.canonicalize()?;
-            canonical_path = Self::normalize_path_for_windows(canonical_path);
+        } else {
+            let mut prev_reader: Option<&TailState<File, BufWriter<Stdout>>> = None;
+            for path in self.filter.filtered_files(&opt) {
+                if self.selected_file_path.is_some() {
+                    // If there is a previous file and its last byte is not \n,
+                    // put \n for consistent result.
+                    if let Some(reader) = prev_reader {
+                        if !reader.printed_eol() {
+                            println!();
+                        }
+                    }
 
-            self.file_map.insert(canonical_path.to_owned(), reader);
-            prev_reader = Some(&self.file_map[&canonical_path]);
-            self.selected_file_path = Some(canonical_path);
+                    println!();
+                }
+                Self::print_normalized_path(&path);
+                let reader = tail(&PathBuf::from(&path), opt.lines)?;
+                let canonical_path = Self::canonicalize_path(&path)?;
+
+                self.file_map.insert(canonical_path.to_owned(), reader);
+                prev_reader = Some(&self.file_map[&canonical_path]);
+                self.selected_file_path = Some(canonical_path);
+            }
         }
 
         let watch_path = opt.watch_path();

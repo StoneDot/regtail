@@ -107,6 +107,12 @@ where
             return Ok(0);
         }
 
+        // Empty tailing consideration
+        if tail_count == 0 {
+            self.seek(SeekFrom::End(0))?;
+            return Ok(0);
+        }
+
         // Skip EOS
         let end_index = len - 1;
         if end_index <= 0 {
