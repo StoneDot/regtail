@@ -11,3 +11,7 @@ regex = "1"
 lazy_static = "1.2.0"
 pathdiff = "0.1.0"
 clap = "2.32.0"
+
+[profile.release]
+opt-level = 3
+lto = true
