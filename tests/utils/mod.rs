@@ -44,6 +44,7 @@ impl WorkingDir {
         }
     }
 
+    #[allow(dead_code)]
     pub fn put_file(self: &Self, relative_path: &str, content: &str) {
         let mut new_file_path = self.parent_path.clone();
         new_file_path.push(relative_path);
@@ -57,6 +58,7 @@ impl WorkingDir {
         fh.sync_all().expect("Failed to sync");
     }
 
+    #[allow(dead_code)]
     pub fn append_file(self: &Self, relative_path: &str, content: &str) {
         let mut append_file_path = self.parent_path.clone();
         append_file_path.push(relative_path);
@@ -70,12 +72,14 @@ impl WorkingDir {
         fh.sync_all().expect("Failed to sync");
     }
 
+    #[allow(dead_code)]
     pub fn remove_file(self: &Self, relative_path: &str) {
         let mut remove_file_path = self.parent_path.clone();
         remove_file_path.push(relative_path);
         fs::remove_file(remove_file_path).expect("Cannot remove file");
     }
 
+    #[allow(dead_code)]
     pub fn rename_file(self: &Self, src_relative_path: &str, dest_relative_path: &str) {
         let mut src_file_path = self.parent_path.clone();
         src_file_path.push(src_relative_path);
@@ -84,6 +88,7 @@ impl WorkingDir {
         fs::rename(src_file_path, dest_file_path).expect("Cannot rename file");
     }
 
+    #[allow(dead_code)]
     pub fn shrink_file(self: &Self, relative_path: &str) {
         let mut shrink_file_path = self.parent_path.clone();
         shrink_file_path.push(relative_path);
