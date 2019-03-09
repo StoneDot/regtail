@@ -104,3 +104,17 @@ test!(shrink_append, |dir: WorkingDir, mut cmd: Command| {
     let output = child.output();
     assert_contains!(output, "replaced <==\nline1\nnew line1\n");
 });
+
+test!(no_tailing, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("file", "should not shown\n");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg("-l").arg("0").arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("file", "should shown\n");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_contains!(output, "file <==\nshould shown\n");
+    assert_not_contains!(output, "file <==\nshould not shown\n");
+});
