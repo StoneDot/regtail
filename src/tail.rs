@@ -94,13 +94,31 @@ where
 {
     fn seek(&mut self, pos: SeekFrom) -> Result<u64> {
         let rc_reader = self.reader()?;
-        let mut reader = rc_reader.borrow_mut();
+        let mut reader = (*rc_reader).borrow_mut();
         if let SeekFrom::Current(_) = pos {
             reader.seek(SeekFrom::Start(self.reader_seek_pos))?;
-            reader.seek(pos)
+            let seek_pos = reader.seek(pos);
+            if let Ok(pos) = seek_pos {
+                self.reader_seek_pos = pos
+            }
+            seek_pos
         } else {
-            reader.seek(pos)
+            let seek_pos = reader.seek(pos);
+            if let Ok(pos) = seek_pos {
+                self.reader_seek_pos = pos
+            }
+            seek_pos
         }
+    }
+}
+
+impl<K, T> Length for TransparentReader<K, T>
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+{
+    fn len(self: &Self) -> Result<u64> {
+        Ok(self.reader_seek_pos)
     }
 }
 
