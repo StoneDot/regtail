@@ -239,10 +239,6 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
     }
 
     pub fn follow_dir(self: &mut Self, opt: &Opt) -> Result<(), NotifyError> {
-        let (tx, rx) = channel();
-        let mut watcher = raw_watcher(tx)?;
-
-
         // Empty tailing consideration
         if opt.lines == 0 {
             for path in self.filter.filtered_files(&opt) {;
@@ -274,12 +270,14 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             }
         }
 
+        let (tx, rx) = channel();
+        let mut watcher = raw_watcher(tx)?;
         let watch_path = opt.watch_path();
+        let recursive_mode = opt.recursive_mode();
+        watcher.watch(watch_path.as_os_str(), recursive_mode)?;
 
         let mut pending_delete_files = VecDeque::new();
         loop {
-            let recursive_mode = opt.recursive_mode();
-            watcher.watch(watch_path.as_os_str(), recursive_mode)?;
             match rx.recv_timeout(std::time::Duration::from_secs(1)) {
                 Ok(RawEvent {
                     path: Some(mut path),
