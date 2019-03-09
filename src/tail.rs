@@ -29,14 +29,16 @@ use lru::LruCache;
 const BUFFER_SIZE: usize = 8 * 1024;
 const BUFFER_LEN: u64 = BUFFER_SIZE as u64;
 
+type FileRepository = Rc<RefCell<LruCache<PathBuf, Rc<RefCell<File>>>>>;
+
 trait ReaderCreator<K, T> {
-    fn create_reader(self: &mut Self, path: &K) -> Result<T>;
+    fn create_reader(self: &Self, path: &K) -> Result<T>;
 }
 
 struct FileCreator;
 
 impl ReaderCreator<PathBuf, File> for FileCreator {
-    fn create_reader(self: &mut Self, path: &PathBuf) -> Result<File> {
+    fn create_reader(self: &Self, path: &PathBuf) -> Result<File> {
         File::open(path)
     }
 }
@@ -58,12 +60,12 @@ where
     K: Hash + Eq + Clone,
     T: Read + Seek + Length,
 {
-    pub fn reader(self: &mut Self) -> Result<Rc<RefCell<T>>> {
+    pub fn reader(self: &Self) -> Result<Rc<RefCell<T>>> {
         let reader = self.reader_cache.upgrade();
         if let Some(x) = reader {
             return Ok(x);
         }
-        let mut reader_cache = self.reader_repository.borrow_mut();
+        let mut reader_cache = (*self.reader_repository).borrow_mut();
         match reader_cache.get(&self.path) {
             Some(reader) => Ok(Rc::clone(reader)),
             None => {
@@ -82,8 +84,12 @@ where
 {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         let rc_reader = self.reader()?;
-        let mut reader = rc_reader.borrow_mut();
-        reader.read(buf)
+        let mut reader = (*rc_reader).borrow_mut();
+        let size = (*reader).read(buf);
+        if let Ok(size) = size {
+            self.reader_seek_pos += size as u64
+        }
+        size
     }
 }
 
@@ -346,8 +352,8 @@ mod tests {
     use std::io::Cursor;
     use std::io::Result;
 
-    use super::Length;
     use super::tail_from_reader;
+    use super::Length;
     use super::TailState;
 
     const CONTENT: &str = r#"line1
