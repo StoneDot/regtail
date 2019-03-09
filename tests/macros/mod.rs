@@ -24,7 +24,7 @@ macro_rules! test {
     };
 }
 
-#[allow(dead_code)]
+#[allow(unused_macros)]
 macro_rules! assert_contains {
     ($haystack:expr, $needle:expr) => {{
         match (&$haystack, &$needle) {
@@ -45,7 +45,7 @@ macro_rules! assert_contains {
     }};
 }
 
-#[allow(dead_code)]
+#[allow(unused_macros)]
 macro_rules! assert_not_contains {
     ($haystack:expr, $needle:expr) => {{
         match (&$haystack, &$needle) {
