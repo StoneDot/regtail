@@ -109,8 +109,8 @@ where
 
         // Empty tailing consideration
         if tail_count == 0 {
-            self.seek(SeekFrom::End(0))?;
-            return Ok(0);
+            let pos = self.seek(SeekFrom::End(0))?;
+            return Ok(pos);
         }
 
         // Skip EOS
