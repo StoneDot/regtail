@@ -118,3 +118,18 @@ test!(no_tailing, |dir: WorkingDir, mut cmd: Command| {
     assert_contains!(output, "file <==\nshould shown\n");
     assert_not_contains!(output, "file <==\nshould not shown\n");
 });
+
+#[cfg(target_os="linux")]
+test!(symlink, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("file", "initial contents\n");
+    dir.symlink("file", "link");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg("file$").arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("link", "appended\n");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_contains!(output, "file <==\ninitial contents\nappended");
+});
