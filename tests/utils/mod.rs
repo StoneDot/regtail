@@ -101,6 +101,16 @@ impl WorkingDir {
         fh.sync_all().expect("Failed to sync");
     }
 
+    #[allow(dead_code)]
+    pub fn symlink(self: &Self, relative_src: &str, relative_dest: &str) {
+        let mut src_path = self.parent_path.clone();
+        src_path.push(relative_src);
+        src_path = src_path.canonicalize().expect("Specified path cannot canonicalize");
+        let mut dest_path = self.parent_path.clone();
+        dest_path.push(relative_dest);
+        std::os::unix::fs::symlink(src_path, dest_path).expect("Failed to make symbolic link");
+    }
+
     pub fn display(self: &Self) -> std::path::Display {
         self.parent_path.display()
     }
