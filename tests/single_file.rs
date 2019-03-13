@@ -108,7 +108,8 @@ test!(shrink_append, |dir: WorkingDir, mut cmd: Command| {
 test!(no_tailing, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file", "should not shown\n");
     sleep(WAIT_TIME);
-    let mut child = RunningCommand::create(cmd.arg("-l").arg("0").arg(dir.path_arg()).spawn().unwrap());
+    let mut child =
+        RunningCommand::create(cmd.arg("-l").arg("0").arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.append_file("file", "should shown\n");
     sleep(WAIT_TIME);
@@ -119,7 +120,7 @@ test!(no_tailing, |dir: WorkingDir, mut cmd: Command| {
     assert_not_contains!(output, "file <==\nshould not shown\n");
 });
 
-#[cfg(target_os="linux")]
+#[cfg(target_os = "linux")]
 test!(symlink, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file", "initial contents\n");
     dir.symlink("file", "link");

@@ -21,12 +21,12 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 
 use ansi_term::Colour::Blue;
-use notify::{Error as NotifyError, op::Op, raw_watcher, RawEvent, Watcher};
+use notify::{op::Op, raw_watcher, Error as NotifyError, RawEvent, Watcher};
 use pathdiff::diff_paths;
 
 use super::filter::PathFilter;
+use super::tail::{tail, Length, TailState};
 use super::Opt;
-use super::tail::{Length, tail, TailState};
 
 pub struct DirectoryWatcher<T, U>
 where
@@ -251,7 +251,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
     pub fn follow_dir(self: &mut Self, opt: &Opt) -> Result<(), NotifyError> {
         // Empty tailing consideration
         if opt.lines == 0 {
-            for path in self.filter.filtered_files(&opt) {;
+            for path in self.filter.filtered_files(&opt) {
                 let reader = tail(&PathBuf::from(&path), 0)?;
                 let canonical_path = Self::canonicalize_path(&path)?;
                 self.file_map.insert(canonical_path.to_owned(), reader);

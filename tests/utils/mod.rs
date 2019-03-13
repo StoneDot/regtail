@@ -102,11 +102,13 @@ impl WorkingDir {
     }
 
     #[allow(dead_code)]
-    #[cfg(target_os="linux")]
+    #[cfg(target_os = "linux")]
     pub fn symlink(self: &Self, relative_src: &str, relative_dest: &str) {
         let mut src_path = self.parent_path.clone();
         src_path.push(relative_src);
-        src_path = src_path.canonicalize().expect("Specified path cannot canonicalize");
+        src_path = src_path
+            .canonicalize()
+            .expect("Specified path cannot canonicalize");
         let mut dest_path = self.parent_path.clone();
         dest_path.push(relative_dest);
         std::os::unix::fs::symlink(src_path, dest_path).expect("Failed to make symbolic link");
