@@ -20,12 +20,13 @@ use std::io::{self, BufWriter, ErrorKind, Stdout};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 
-use notify::{op::Op, raw_watcher, Error as NotifyError, RawEvent, Watcher};
+use ansi_term::Colour::Blue;
+use notify::{Error as NotifyError, op::Op, raw_watcher, RawEvent, Watcher};
 use pathdiff::diff_paths;
 
 use super::filter::PathFilter;
-use super::tail::{tail, Length, TailState};
 use super::Opt;
+use super::tail::{Length, tail, TailState};
 
 pub struct DirectoryWatcher<T, U>
 where
@@ -37,6 +38,7 @@ where
     selected_file_path: Option<PathBuf>,
     file_map: HashMap<PathBuf, TailState<T, U>>,
     renaming_map: HashMap<u32, Option<TailState<T, U>>>,
+    colorize: bool,
 }
 
 impl DirectoryWatcher<File, BufWriter<Stdout>> {
@@ -59,15 +61,23 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
             selected_file_path: None,
             file_map: HashMap::new(),
             renaming_map: HashMap::new(),
+            colorize: opt.colorize,
         })
     }
 }
 
 impl DirectoryWatcher<File, BufWriter<Stdout>> {
-    fn print_normalized_path(path: &PathBuf) {
+    fn print_normalized_path(self: &Self, path: &PathBuf) {
         let relative_path = path.to_string_lossy();
         let display_path = relative_path.trim_start_matches("./");
-        println!("==> {} <==", display_path);
+
+        if self.colorize {
+            print!("{}", Blue.paint("==> "));
+            self.filter.print_path_with_color(display_path);
+            println!("{}", Blue.paint(" <=="));
+        } else {
+            println!("==> {} <==", display_path);
+        }
     }
 
     fn normalize_path_for_windows(canonical_path: PathBuf) -> PathBuf {
@@ -132,12 +142,12 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         if let Some(current_dir) = &self.current_dir {
             if let Some(relative_path) = diff_paths(&path, &current_dir) {
                 print!("{}", preceding);
-                Self::print_normalized_path(&relative_path);
+                self.print_normalized_path(&relative_path);
                 return;
             }
         }
         print!("{}", preceding);
-        Self::print_normalized_path(path);
+        self.print_normalized_path(path);
     }
 
     fn unsubscribe_select_file(
@@ -260,7 +270,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
 
                     println!();
                 }
-                Self::print_normalized_path(&path);
+                self.print_normalized_path(&path);
                 let reader = tail(&PathBuf::from(&path), opt.lines)?;
                 let canonical_path = Self::canonicalize_path(&path)?;
 
