@@ -72,9 +72,9 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         let display_path = relative_path.trim_start_matches("./");
 
         if self.colorize {
-            print!("{}", Blue.paint("==> "));
+            print!("{}", Blue.bold().paint("==> "));
             self.filter.print_path_with_color(display_path);
-            println!("{}", Blue.paint(" <=="));
+            println!("{}", Blue.bold().paint(" <=="));
         } else {
             println!("==> {} <==", display_path);
         }

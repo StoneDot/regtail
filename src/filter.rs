@@ -95,12 +95,12 @@ impl PathFilter {
         let mut prev_end_point = 0;
         for m in self.regex.find_iter(path) {
             let prev_str = &path[prev_end_point..m.start()];
-            print!("{}", Blue.paint(prev_str));
-            print!("{}", Green.paint(m.as_str()));
+            print!("{}", Blue.bold().paint(prev_str));
+            print!("{}", Green.bold().paint(m.as_str()));
             prev_end_point = m.end();
         }
         let len = path.len();
         let last_str = &path[prev_end_point..len];
-        print!("{}", Blue.paint(last_str));
+        print!("{}", Blue.bold().paint(last_str));
     }
 }
