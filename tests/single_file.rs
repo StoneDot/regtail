@@ -120,6 +120,19 @@ test!(no_tailing, |dir: WorkingDir, mut cmd: Command| {
     assert_not_contains!(output, "file <==\nshould not shown\n");
 });
 
+test!(multi_byte_file_name, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("日本語ファイル.txt", "表示できます。\n");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("日本語ファイル.txt", "追記します。\n");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_contains!(output, "日本語ファイル.txt <==\n表示できます。\n追記します。\n");
+});
+
 #[cfg(target_os = "linux")]
 test!(symlink, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file", "initial contents\n");
