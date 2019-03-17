@@ -23,6 +23,7 @@ use std::rc::Rc;
 use std::sync::mpsc::channel;
 
 use lru::LruCache;
+use ansi_term::Colour::Blue;
 use notify::{op::Op, raw_watcher, Error as NotifyError, RawEvent, Watcher};
 use pathdiff::diff_paths;
 
@@ -45,6 +46,7 @@ where
     file_map: HashMap<PathBuf, CachedTailState>,
     renaming_map: HashMap<u32, Option<TailState<T, U>>>,
     repository: FileRepository,
+    colorize: bool,
 }
 
 impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
@@ -70,15 +72,23 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
             file_map: HashMap::new(),
             renaming_map: HashMap::new(),
             repository,
+            colorize: opt.colorize,
         })
     }
 }
 
 impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
-    fn print_normalized_path(path: &PathBuf) {
+    fn print_normalized_path(self: &Self, path: &PathBuf) {
         let relative_path = path.to_string_lossy();
         let display_path = relative_path.trim_start_matches("./");
-        println!("==> {} <==", display_path);
+
+        if self.colorize {
+            print!("{}", Blue.bold().paint("==> "));
+            self.filter.print_path_with_color(display_path);
+            println!("{}", Blue.bold().paint(" <=="));
+        } else {
+            println!("==> {} <==", display_path);
+        }
     }
 
     fn normalize_path_for_windows(canonical_path: PathBuf) -> PathBuf {
@@ -143,12 +153,12 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         if let Some(current_dir) = &self.current_dir {
             if let Some(relative_path) = diff_paths(&path, &current_dir) {
                 print!("{}", preceding);
-                Self::print_normalized_path(&relative_path);
+                self.print_normalized_path(&relative_path);
                 return;
             }
         }
         print!("{}", preceding);
-        Self::print_normalized_path(path);
+        self.print_normalized_path(path);
     }
 
     fn unsubscribe_select_file(self: &mut Self, path: &PathBuf, reader: &CachedTailState) {
@@ -265,7 +275,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
 
                     println!();
                 }
-                Self::print_normalized_path(&path);
+                self.print_normalized_path(&path);
                 let reader = tail2(PathBuf::from(&path), Rc::clone(&self.repository), opt.lines)?;
                 let canonical_path = Self::canonicalize_path(&path)?;
 
