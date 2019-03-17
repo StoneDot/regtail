@@ -130,7 +130,25 @@ test!(multi_byte_file_name, |dir: WorkingDir, mut cmd: Command| {
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
-    assert_contains!(output, "日本語ファイル.txt <==\n表示できます。\n追記します。\n");
+    assert_contains!(
+        output,
+        "日本語ファイル.txt <==\n表示できます。\n追記します。\n"
+    );
+});
+
+test!(filtered, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("file", "not shown");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg("none").arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("file", "also not shown");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_not_contains!(output, "file");
+    assert_not_contains!(output, "now shown");
+    assert_not_contains!(output, "also not shown");
 });
 
 #[cfg(target_os = "linux")]
