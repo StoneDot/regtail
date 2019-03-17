@@ -203,6 +203,11 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
                 reader.dump_to_tail()?;
             }
             None => {
+                // Check file existence
+                if !Path::exists(&path) {
+                    return Ok(());
+                }
+
                 // Supplied path is not opened currently
                 let mut reader =
                     CachedTailState::from_path(path.clone(), Rc::clone(&self.repository))?;
