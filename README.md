@@ -86,17 +86,17 @@ brew install regtail
 ### Binary
 ```bash
 # Linux x86_64
-wget https://github.com/StoneDot/regtail/releases/download/v0.0.1/regtail-v0.0.1-x86_64-unknown-linux-gnu.tar.gz
-tar zxf regtail-v0.0.1-x86_64-unknown-linux-gnu.tar.gz
-cd regtail-v0.0.1-x86_64-unknown-linux-gnu
+wget https://github.com/StoneDot/regtail/releases/download/v0.0.2/regtail-v0.0.2-x86_64-unknown-linux-gnu.tar.gz
+tar zxf regtail-v0.0.2-x86_64-unknown-linux-gnu.tar.gz
+cd regtail-v0.0.2-x86_64-unknown-linux-gnu
 sudo cp regtail /usr/local/bin
 ```
 
 ### Source build
 ```bash
-wget https://github.com/StoneDot/regtail/archive/v0.0.1.tar.gz
-tar zxf v0.0.1.tar.gz
-cd regtail-0.0.1
+wget https://github.com/StoneDot/regtail/archive/v0.0.2.tar.gz
+tar zxf v0.0.2.tar.gz
+cd regtail-0.0.2
 cargo install --root $HOME --path .
 export PATH="$HOME/bin:$PATH"
 ```
