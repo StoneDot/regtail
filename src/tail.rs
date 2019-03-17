@@ -14,21 +14,156 @@
  * limitations under the License.
  */
 
+use std::cell::RefCell;
 use std::cmp::max;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::{self, Read, Result, Seek, SeekFrom, Stdout, Write};
 use std::path::PathBuf;
+use std::rc::{Rc, Weak};
+
+use lru::LruCache;
 
 // Max recommended buffer size is 128kB
 // We choose reasonable size 8kB
 const BUFFER_SIZE: usize = 8 * 1024;
 const BUFFER_LEN: u64 = BUFFER_SIZE as u64;
 
+pub type FileRepository = Rc<RefCell<LruCache<PathBuf, Rc<RefCell<File>>>>>;
+pub type FileReader = TransparentReader<PathBuf, File, FileCreator>;
+pub type CachedTailState = TailState<FileReader, io::BufWriter<Stdout>>;
+
+pub trait ReaderCreator<K, T> {
+    fn create_reader(self: &Self, path: &K) -> Result<T>;
+}
+
+pub struct FileCreator;
+
+impl ReaderCreator<PathBuf, File> for FileCreator {
+    fn create_reader(self: &Self, path: &PathBuf) -> Result<File> {
+        File::open(path)
+    }
+}
+
+pub struct TransparentReader<K, T, C>
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+    C: ReaderCreator<K, T>,
+{
+    reader_repository: Rc<RefCell<LruCache<K, Rc<RefCell<T>>>>>,
+    path: K,
+    reader_seek_pos: u64,
+    reader_cache: RefCell<Weak<RefCell<T>>>,
+    reader_creator: C,
+}
+
+impl<K, T, C> TransparentReader<K, T, C>
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+    C: ReaderCreator<K, T>,
+{
+    fn reader(self: &Self) -> Result<Rc<RefCell<T>>> {
+        let mut reader_cache = self.reader_cache.borrow_mut();
+        let reader = reader_cache.upgrade();
+        if let Some(x) = reader {
+            return Ok(x);
+        }
+        let mut reader_repo = (*self.reader_repository).borrow_mut();
+        match reader_repo.get(&self.path) {
+            Some(reader) => Ok(Rc::clone(reader)),
+            None => {
+                let file = self.reader_creator.create_reader(&self.path)?;
+                reader_repo.put(self.path.clone(), Rc::new(RefCell::new(file)));
+                let data = reader_repo.get(&self.path).unwrap();
+                *reader_cache = Rc::downgrade(data);
+                Ok(Rc::clone(data))
+            }
+        }
+    }
+
+    fn seek_pos(self: &Self) -> u64 {
+        self.reader_seek_pos
+    }
+}
+
+impl<K, T, C> Read for TransparentReader<K, T, C>
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+    C: ReaderCreator<K, T>,
+{
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        let rc_reader = self.reader()?;
+        let mut reader = (*rc_reader).borrow_mut();
+        let size = (*reader).read(buf);
+        if let Ok(size) = size {
+            self.reader_seek_pos += size as u64
+        }
+        size
+    }
+}
+
+impl<K, T, C> Seek for TransparentReader<K, T, C>
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+    C: ReaderCreator<K, T>,
+{
+    fn seek(&mut self, pos: SeekFrom) -> Result<u64> {
+        let rc_reader = self.reader()?;
+        let mut reader = (*rc_reader).borrow_mut();
+        if let SeekFrom::Current(_) = pos {
+            reader.seek(SeekFrom::Start(self.reader_seek_pos))?;
+            let seek_pos = reader.seek(pos);
+            if let Ok(pos) = seek_pos {
+                self.reader_seek_pos = pos
+            }
+            seek_pos
+        } else {
+            let seek_pos = reader.seek(pos);
+            if let Ok(pos) = seek_pos {
+                self.reader_seek_pos = pos
+            }
+            seek_pos
+        }
+    }
+}
+
+impl<K, T, C> Length for TransparentReader<K, T, C>
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+    C: ReaderCreator<K, T>,
+{
+    fn len(self: &Self) -> Result<u64> {
+        let rc_reader = self.reader()?;
+        let reader = (*rc_reader).borrow_mut();
+        reader.len()
+    }
+}
+
+impl TransparentReader<PathBuf, File, FileCreator> {
+    fn new(
+        path: PathBuf,
+        repository: Rc<RefCell<LruCache<PathBuf, Rc<RefCell<File>>>>>,
+    ) -> TransparentReader<PathBuf, File, FileCreator> {
+        TransparentReader {
+            reader_repository: repository,
+            path,
+            reader_seek_pos: 0,
+            reader_cache: RefCell::new(Weak::new()),
+            reader_creator: FileCreator,
+        }
+    }
+}
+
 pub trait Length {
     fn len(self: &Self) -> Result<u64>;
 }
 
-impl Length for std::fs::File {
+impl Length for File {
     fn len(self: &Self) -> Result<u64> {
         Ok(self.metadata()?.len())
     }
@@ -45,12 +180,17 @@ where
     printed_eol: bool,
 }
 
-impl TailState<std::fs::File, io::BufWriter<Stdout>> {
-    pub fn from_file(mut file: File) -> Result<TailState<File, io::BufWriter<Stdout>>> {
-        let pos = file.seek(SeekFrom::Current(0))?;
+impl CachedTailState {
+    pub fn from_path(path: PathBuf, repo: FileRepository) -> Result<CachedTailState> {
+        let reader = FileReader::new(path, repo);
+        Self::from_file_reader(reader)
+    }
+
+    pub fn from_file_reader(reader: FileReader) -> Result<CachedTailState> {
+        let pos = reader.seek_pos();
         let writer = io::BufWriter::new(io::stdout());
-        Ok(TailState {
-            reader: file,
+        Ok(CachedTailState {
+            reader,
             writer,
             reader_seek_pos: pos,
             printed_eol: false,
@@ -236,11 +376,10 @@ where
     reader.dump_to_tail()
 }
 
-pub fn tail(path: &PathBuf, tail_count: u64) -> Result<TailState<File, io::BufWriter<Stdout>>> {
-    let file = File::open(path)?;
-    let mut reader = TailState::from_file(file)?;
-    let _offset = tail_from_reader(&mut reader, tail_count)?;
-    Ok(reader)
+pub fn tail2(path: PathBuf, repo: FileRepository, tail_count: u64) -> Result<CachedTailState> {
+    let mut tail_state = CachedTailState::from_path(path, repo)?;
+    let _offset = tail_from_reader(&mut tail_state, tail_count);
+    Ok(tail_state)
 }
 
 #[cfg(test)]

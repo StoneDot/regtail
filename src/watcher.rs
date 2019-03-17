@@ -14,19 +14,26 @@
  * limitations under the License.
  */
 
+use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::fs::File;
 use std::io::{self, BufWriter, ErrorKind, Stdout};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::sync::mpsc::channel;
 
+use lru::LruCache;
 use ansi_term::Colour::Blue;
 use notify::{op::Op, raw_watcher, Error as NotifyError, RawEvent, Watcher};
 use pathdiff::diff_paths;
 
+use crate::tail::CachedTailState;
+
 use super::filter::PathFilter;
-use super::tail::{tail, Length, TailState};
+use super::tail::{tail2, FileReader, FileRepository, Length, TailState};
 use super::Opt;
+
+const MAX_FILE_HANDLE: usize = 512;
 
 pub struct DirectoryWatcher<T, U>
 where
@@ -36,13 +43,14 @@ where
     filter: PathFilter,
     current_dir: Option<PathBuf>,
     selected_file_path: Option<PathBuf>,
-    file_map: HashMap<PathBuf, TailState<T, U>>,
+    file_map: HashMap<PathBuf, CachedTailState>,
     renaming_map: HashMap<u32, Option<TailState<T, U>>>,
+    repository: FileRepository,
     colorize: bool,
 }
 
-impl DirectoryWatcher<File, BufWriter<Stdout>> {
-    pub fn new(opt: &Opt) -> Result<DirectoryWatcher<File, BufWriter<Stdout>>, i32> {
+impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
+    pub fn new(opt: &Opt) -> Result<DirectoryWatcher<FileReader, BufWriter<Stdout>>, i32> {
         // Check whether supplied path is a directory
         if !opt.watch_path_is_dir() {
             eprintln!("supplied path is not a directory");
@@ -55,18 +63,21 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         // Retrieve current directory
         let current_dir = std::env::current_dir().ok();
 
+        let repository: FileRepository = Rc::new(RefCell::new(LruCache::new(MAX_FILE_HANDLE)));
+
         Ok(DirectoryWatcher {
             filter,
             current_dir,
             selected_file_path: None,
             file_map: HashMap::new(),
             renaming_map: HashMap::new(),
+            repository,
             colorize: opt.colorize,
         })
     }
 }
 
-impl DirectoryWatcher<File, BufWriter<Stdout>> {
+impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
     fn print_normalized_path(self: &Self, path: &PathBuf) {
         let relative_path = path.to_string_lossy();
         let display_path = relative_path.trim_start_matches("./");
@@ -150,11 +161,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         self.print_normalized_path(path);
     }
 
-    fn unsubscribe_select_file(
-        self: &mut Self,
-        path: &PathBuf,
-        reader: &TailState<File, BufWriter<Stdout>>,
-    ) {
+    fn unsubscribe_select_file(self: &mut Self, path: &PathBuf, reader: &CachedTailState) {
         if let Some(selected_file_path) = &self.selected_file_path {
             if selected_file_path == path {
                 if !reader.printed_eol() {
@@ -196,13 +203,16 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
                 reader.dump_to_tail()?;
             }
             None => {
-                // Supplied path is not opened currently
-                let file = File::open(&path);
-                if let Ok(file) = file {
-                    let mut reader = TailState::from_file(file)?;
-                    reader.dump_to_tail()?;
-                    self.file_map.insert(path, reader);
+                // Check file existence
+                if !Path::exists(&path) {
+                    return Ok(());
                 }
+
+                // Supplied path is not opened currently
+                let mut reader =
+                    CachedTailState::from_path(path.clone(), Rc::clone(&self.repository))?;
+                reader.dump_to_tail()?;
+                self.file_map.insert(path, reader);
             }
         }
         Ok(())
@@ -244,6 +254,10 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
 
     fn handle_remove(self: &mut Self, path: &PathBuf) -> () {
         if let Some(reader) = self.file_map.remove(path) {
+            {
+                let mut repo = (*self.repository).borrow_mut();
+                repo.pop(path);
+            }
             self.unsubscribe_select_file(path, &reader);
         }
     }
@@ -252,12 +266,12 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
         // Empty tailing consideration
         if opt.lines == 0 {
             for path in self.filter.filtered_files(&opt) {
-                let reader = tail(&PathBuf::from(&path), 0)?;
+                let reader = tail2(PathBuf::from(&path), Rc::clone(&self.repository), 0)?;
                 let canonical_path = Self::canonicalize_path(&path)?;
                 self.file_map.insert(canonical_path.to_owned(), reader);
             }
         } else {
-            let mut prev_reader: Option<&TailState<File, BufWriter<Stdout>>> = None;
+            let mut prev_reader: Option<&CachedTailState> = None;
             for path in self.filter.filtered_files(&opt) {
                 if self.selected_file_path.is_some() {
                     // If there is a previous file and its last byte is not \n,
@@ -271,7 +285,7 @@ impl DirectoryWatcher<File, BufWriter<Stdout>> {
                     println!();
                 }
                 self.print_normalized_path(&path);
-                let reader = tail(&PathBuf::from(&path), opt.lines)?;
+                let reader = tail2(PathBuf::from(&path), Rc::clone(&self.repository), opt.lines)?;
                 let canonical_path = Self::canonicalize_path(&path)?;
 
                 self.file_map.insert(canonical_path.to_owned(), reader);
