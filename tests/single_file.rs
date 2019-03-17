@@ -151,6 +151,21 @@ test!(filtered, |dir: WorkingDir, mut cmd: Command| {
     assert_not_contains!(output, "also not shown");
 });
 
+test!(no_initial_output, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("file", "not shown");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg("-l=0").arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("file", "to be shown");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_not_contains!(output, "now shown");
+    assert_contains!(output, "file <==\nto be shown");
+    assert_contains!(output, "file <==\nto be shown");
+});
+
 #[cfg(target_os = "linux")]
 test!(symlink, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file", "initial contents\n");
