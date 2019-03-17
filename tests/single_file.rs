@@ -108,7 +108,8 @@ test!(shrink_append, |dir: WorkingDir, mut cmd: Command| {
 test!(no_tailing, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file", "should not shown\n");
     sleep(WAIT_TIME);
-    let mut child = RunningCommand::create(cmd.arg("-l").arg("0").arg(dir.path_arg()).spawn().unwrap());
+    let mut child =
+        RunningCommand::create(cmd.arg("-l").arg("0").arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
     dir.append_file("file", "should shown\n");
     sleep(WAIT_TIME);
@@ -117,4 +118,65 @@ test!(no_tailing, |dir: WorkingDir, mut cmd: Command| {
     let output = child.output();
     assert_contains!(output, "file <==\nshould shown\n");
     assert_not_contains!(output, "file <==\nshould not shown\n");
+});
+
+test!(multi_byte_file_name, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("日本語ファイル.txt", "表示できます。\n");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("日本語ファイル.txt", "追記します。\n");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_contains!(
+        output,
+        "日本語ファイル.txt <==\n表示できます。\n追記します。\n"
+    );
+});
+
+test!(filtered, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("file", "not shown");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg("none").arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("file", "also not shown");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_not_contains!(output, "file");
+    assert_not_contains!(output, "now shown");
+    assert_not_contains!(output, "also not shown");
+});
+
+test!(no_initial_output, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("file", "not shown");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg("-l=0").arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("file", "to be shown");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_not_contains!(output, "now shown");
+    assert_contains!(output, "file <==\nto be shown");
+    assert_contains!(output, "file <==\nto be shown");
+});
+
+#[cfg(target_os = "linux")]
+test!(symlink, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("file", "initial contents\n");
+    dir.symlink("file", "link");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg("file$").arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    dir.append_file("link", "appended\n");
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_contains!(output, "file <==\ninitial contents\nappended");
 });

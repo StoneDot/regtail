@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-use clap::{self, Arg};
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use clap::{self, Arg};
 use notify::RecursiveMode;
 
 lazy_static! {
@@ -30,6 +30,7 @@ pub struct Opt {
     depth: Option<usize>,
     pub regex: Option<String>,
     path: Option<PathBuf>,
+    pub colorize: bool,
 }
 
 impl Opt {
@@ -86,6 +87,12 @@ impl Opt {
                     .conflicts_with("path")
                     .takes_value(true),
             )
+            .arg(
+                Arg::with_name("color")
+                    .short("c")
+                    .required(false)
+                    .help("Colorize output"),
+            )
             .get_matches();
         Opt {
             lines: value_t!(matches, "lines", u64).unwrap_or_else(|e| e.exit()),
@@ -107,6 +114,7 @@ impl Opt {
                 .value_of_os("path")
                 .map(|x| PathBuf::from(x))
                 .or_else(|| matches.value_of_os("PATH").map(|x| PathBuf::from(x))),
+            colorize: matches.is_present("color"),
         }
     }
 

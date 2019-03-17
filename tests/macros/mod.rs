@@ -60,5 +60,5 @@ macro_rules! assert_not_contains {
                 }
             }
         }
-    }}
+    }};
 }
