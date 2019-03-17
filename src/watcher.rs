@@ -249,6 +249,10 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
 
     fn handle_remove(self: &mut Self, path: &PathBuf) -> () {
         if let Some(reader) = self.file_map.remove(path) {
+            {
+                let mut repo = (*self.repository).borrow_mut();
+                repo.pop(path);
+            }
             self.unsubscribe_select_file(path, &reader);
         }
     }

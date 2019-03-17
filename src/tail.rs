@@ -138,7 +138,9 @@ where
     C: ReaderCreator<K, T>,
 {
     fn len(self: &Self) -> Result<u64> {
-        Ok(self.reader_seek_pos)
+        let rc_reader = self.reader()?;
+        let reader = (*rc_reader).borrow_mut();
+        reader.len()
     }
 }
 
