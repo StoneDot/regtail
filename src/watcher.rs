@@ -131,6 +131,10 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
             }
             // Release file handles with pending delete to ensure actually they're deleted
             for path in pending_delete_files.iter() {
+                {
+                    let mut repo = (*self.repository).borrow_mut();
+                    repo.pop(&path);
+                }
                 if let Some(reader) = self.file_map.remove(path) {
                     self.unsubscribe_select_file(path, &reader);
                 }
@@ -266,8 +270,8 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         // Empty tailing consideration
         if opt.lines == 0 {
             for path in self.filter.filtered_files(&opt) {
-                let reader = tail2(PathBuf::from(&path), Rc::clone(&self.repository), 0)?;
                 let canonical_path = Self::canonicalize_path(&path)?;
+                let reader = tail2(PathBuf::from(&canonical_path), Rc::clone(&self.repository), 0)?;
                 self.file_map.insert(canonical_path.to_owned(), reader);
             }
         } else {
@@ -285,8 +289,8 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
                     println!();
                 }
                 self.print_normalized_path(&path);
-                let reader = tail2(PathBuf::from(&path), Rc::clone(&self.repository), opt.lines)?;
                 let canonical_path = Self::canonicalize_path(&path)?;
+                let reader = tail2(PathBuf::from(&canonical_path), Rc::clone(&self.repository), opt.lines)?;
 
                 self.file_map.insert(canonical_path.to_owned(), reader);
                 prev_reader = Some(&self.file_map[&canonical_path]);
