@@ -222,6 +222,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         Ok(())
     }
 
+    #[allow(clippy::single_match)]
     fn handle_rename(self: &mut Self, path: PathBuf, cookie: Option<u32>) {
         if let Some(cookie) = cookie {
             match self.renaming_map.remove(&cookie) {
@@ -341,6 +342,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
                             }
                         }
                     } else {
+                        // Except for Mac OS, op can be treated as atomic
                         if op == Op::WRITE {
                             self.handle_write(path)?
                         } else if op == Op::REMOVE {
