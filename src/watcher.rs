@@ -22,8 +22,8 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::mpsc::channel;
 
-use lru::LruCache;
 use ansi_term::Colour::Blue;
+use lru::LruCache;
 use notify::{op::Op, raw_watcher, Error as NotifyError, RawEvent, Watcher};
 use pathdiff::diff_paths;
 
@@ -271,7 +271,11 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         if opt.lines == 0 {
             for path in self.filter.filtered_files(&opt) {
                 let canonical_path = Self::canonicalize_path(&path)?;
-                let reader = tail2(PathBuf::from(&canonical_path), Rc::clone(&self.repository), 0)?;
+                let reader = tail2(
+                    PathBuf::from(&canonical_path),
+                    Rc::clone(&self.repository),
+                    0,
+                )?;
                 self.file_map.insert(canonical_path.to_owned(), reader);
             }
         } else {
@@ -290,7 +294,11 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
                 }
                 self.print_normalized_path(&path);
                 let canonical_path = Self::canonicalize_path(&path)?;
-                let reader = tail2(PathBuf::from(&canonical_path), Rc::clone(&self.repository), opt.lines)?;
+                let reader = tail2(
+                    PathBuf::from(&canonical_path),
+                    Rc::clone(&self.repository),
+                    opt.lines,
+                )?;
 
                 self.file_map.insert(canonical_path.to_owned(), reader);
                 prev_reader = Some(&self.file_map[&canonical_path]);
