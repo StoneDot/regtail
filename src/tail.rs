@@ -211,8 +211,8 @@ where
         read_size
     }
 
-    pub fn write(&mut self, mut buf: &[u8]) -> Result<usize> {
-        self.writer.write(&mut buf)
+    pub fn write(&mut self, buf: &[u8]) -> Result<usize> {
+        self.writer.write(&buf)
     }
 
     pub fn flush(&mut self) -> Result<()> {
@@ -255,7 +255,7 @@ where
 
         // Skip EOS
         let end_index = len - 1;
-        if end_index <= 0 {
+        if end_index == 0 {
             return Ok(0);
         }
 
@@ -298,7 +298,7 @@ where
             }
 
             // Read file data into buffer
-            start_index = start_index - BUFFER_LEN;
+            start_index -= BUFFER_LEN;
             self.seek(SeekFrom::Start(start_index))?;
             read_size = self.read(&mut buffer)?;
             target = &buffer[..read_size];
@@ -340,7 +340,7 @@ where
         let mut last_byte = target.last().map(u8::to_owned);
 
         if read_size == 0 {
-            return Ok(offset);
+            Ok(offset)
         } else {
             loop {
                 // Write to stdio

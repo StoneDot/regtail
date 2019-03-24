@@ -124,7 +124,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
     fn handle_pending_delete(self: &mut Self, pending_delete_files: &mut VecDeque<PathBuf>) {
         // On Windows, try to detect pending delete files
         if cfg!(target_os = "windows") {
-            for (path, _) in &self.file_map {
+            for path in self.file_map.keys() {
                 if Self::pending_delete_file(path) {
                     pending_delete_files.push_back(path.to_owned());
                 }
@@ -256,7 +256,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         }
     }
 
-    fn handle_remove(self: &mut Self, path: &PathBuf) -> () {
+    fn handle_remove(self: &mut Self, path: &PathBuf) {
         if let Some(reader) = self.file_map.remove(path) {
             {
                 let mut repo = (*self.repository).borrow_mut();
