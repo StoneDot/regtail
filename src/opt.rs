@@ -98,7 +98,7 @@ impl Opt {
             lines: value_t!(matches, "lines", u64).unwrap_or_else(|e| e.exit()),
             recursive: matches.is_present("recursive"),
             depth: value_t!(matches.value_of("depth"), usize)
-                .map(|x| Some(x))
+                .map(Some)
                 .unwrap_or_else(|e| {
                     if e.kind == clap::ErrorKind::ArgumentNotFound {
                         None
@@ -112,8 +112,8 @@ impl Opt {
                 .or_else(|| matches.value_of("REGEX").map(|x| x.to_owned())),
             path: matches
                 .value_of_os("path")
-                .map(|x| PathBuf::from(x))
-                .or_else(|| matches.value_of_os("PATH").map(|x| PathBuf::from(x))),
+                .map(PathBuf::from)
+                .or_else(|| matches.value_of_os("PATH").map(PathBuf::from)),
             colorize: matches.is_present("color"),
         }
     }
