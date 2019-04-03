@@ -82,10 +82,6 @@ where
             }
         }
     }
-
-    fn seek_pos(self: &Self) -> u64 {
-        self.reader_seek_pos
-    }
 }
 
 impl<K, T, C> Read for TransparentReader<K, T, C>
@@ -144,6 +140,17 @@ where
     }
 }
 
+impl<K, T, C> SeekPos for TransparentReader<K, T, C>
+    where
+        K: Hash + Eq + Clone,
+        T: Read + Seek + Length,
+        C: ReaderCreator<K, T>,
+{
+    fn seek_pos(&self) -> u64 {
+        self.reader_seek_pos
+    }
+}
+
 impl TransparentReader<PathBuf, File, FileCreator> {
     fn new(
         path: PathBuf,
@@ -163,6 +170,10 @@ pub trait Length {
     fn len(self: &Self) -> Result<u64>;
 }
 
+pub trait SeekPos {
+    fn seek_pos(&self) -> u64;
+}
+
 impl Length for File {
     fn len(self: &Self) -> Result<u64> {
         Ok(self.metadata()?.len())
@@ -171,12 +182,11 @@ impl Length for File {
 
 pub struct TailState<T, U>
 where
-    T: Read + Seek + Length,
+    T: Read + Seek + SeekPos + Length,
     U: Write,
 {
     reader: T,
     writer: U,
-    reader_seek_pos: u64,
     printed_eol: bool,
 }
 
@@ -187,12 +197,10 @@ impl CachedTailState {
     }
 
     pub fn from_file_reader(reader: FileReader) -> Result<CachedTailState> {
-        let pos = reader.seek_pos();
         let writer = io::BufWriter::new(io::stdout());
         Ok(CachedTailState {
             reader,
             writer,
-            reader_seek_pos: pos,
             printed_eol: false,
         })
     }
@@ -200,15 +208,11 @@ impl CachedTailState {
 
 impl<T, U> TailState<T, U>
 where
-    T: Read + Seek + Length,
+    T: Read + Seek + SeekPos + Length,
     U: Write,
 {
     pub fn read(&mut self, mut buf: &mut [u8]) -> Result<usize> {
-        let read_size = self.reader.read(&mut buf);
-        if let Ok(read_size) = read_size {
-            self.reader_seek_pos += read_size as u64;
-        }
-        read_size
+        self.reader.read(&mut buf)
     }
 
     pub fn write(&mut self, buf: &[u8]) -> Result<usize> {
@@ -219,13 +223,12 @@ where
         self.writer.flush()
     }
 
-    pub fn seek(mut self: &mut Self, seek: SeekFrom) -> Result<u64> {
-        self.reader_seek_pos = self.reader.seek(seek)?;
-        Ok(self.reader_seek_pos)
+    pub fn seek(self: &mut Self, seek: SeekFrom) -> Result<u64> {
+        self.reader.seek(seek)
     }
 
     pub fn current_seek(self: &Self) -> u64 {
-        self.reader_seek_pos
+        self.reader.seek_pos()
     }
 
     pub fn len(self: &Self) -> Result<u64> {
@@ -368,7 +371,7 @@ where
 
 fn tail_from_reader<T, U>(reader: &mut TailState<T, U>, tail_count: u64) -> Result<u64>
 where
-    T: Read + Seek + Length,
+    T: Read + Seek + SeekPos + Length,
     U: Write,
 {
     let offset = reader.tail_start_position(tail_count)?;
@@ -390,6 +393,7 @@ mod tests {
     use super::tail_from_reader;
     use super::Length;
     use super::TailState;
+    use crate::tail::SeekPos;
 
     const CONTENT: &str = r#"line1
 line2
@@ -410,6 +414,10 @@ line5"#;
         }
     }
 
+    impl SeekPos for Cursor<&[u8]> {
+        fn seek_pos(&self) -> u64 { self.get_ref().len() as u64 }
+    }
+
     impl TailState<Cursor<&[u8]>, &mut Vec<u8>> {
         pub fn from_slice<'a>(
             reader: Cursor<&'a [u8]>,
@@ -418,7 +426,6 @@ line5"#;
             Ok(TailState {
                 reader,
                 writer,
-                reader_seek_pos: 0,
                 printed_eol: false,
             })
         }
