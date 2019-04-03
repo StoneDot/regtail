@@ -27,7 +27,7 @@ use lru::LruCache;
 use notify::{op::Op, raw_watcher, Error as NotifyError, RawEvent, Watcher};
 use pathdiff::diff_paths;
 
-use crate::tail::CachedTailState;
+use crate::tail::{CachedTailState, SeekPos};
 
 use super::filter::PathFilter;
 use super::tail::{tail2, FileReader, FileRepository, Length, TailState};
@@ -37,7 +37,7 @@ const MAX_FILE_HANDLE: usize = 512;
 
 pub struct DirectoryWatcher<T, U>
 where
-    T: std::io::Read + std::io::Seek + Length,
+    T: std::io::Read + std::io::Seek + SeekPos + Length,
     U: std::io::Write,
 {
     filter: PathFilter,
