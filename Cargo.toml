@@ -1,6 +1,6 @@
 [package]
 name = "regtail"
-version = "0.0.3"
+version = "0.1.0"
 authors = ["Hiroaki Goto <goto.inct@gmail.com>"]
 edition = "2018"
 
