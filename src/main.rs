@@ -58,8 +58,11 @@ fn follow(opt: &Opt) -> Result<(), i32> {
 
 fn app() -> i32 {
     //let opt = Opt::from_args();
-    let opt = Opt::generate();
-    follow(&opt).err().unwrap_or(0)
+    let opt = Opt::generate().map_err(|_| EX_ERR);
+    match opt {
+        Ok(opt) => follow(&opt).err().unwrap_or(0),
+        Err(error_code) => error_code,
+    }
 }
 
 fn main() {

@@ -33,8 +33,12 @@ pub struct Opt {
     pub colorize: bool,
 }
 
+pub enum ParseError {
+    ColorParseFailed,
+}
+
 impl Opt {
-    pub fn generate() -> Opt {
+    pub fn generate() -> Result<Opt, ParseError> {
         let matches = app_from_crate!()
             .arg(
                 Arg::with_name("recursive")
@@ -91,10 +95,22 @@ impl Opt {
                 Arg::with_name("color")
                     .short("c")
                     .required(false)
-                    .help("Colorize output"),
+                    .takes_value(true)
+                    .possible_values(&["auto", "never", "always"])
+                    .help("Colorize mode"),
             )
             .get_matches();
-        Opt {
+        let color_mode = match matches.value_of("color") {
+            Some(mode) => mode,
+            None => "auto",
+        };
+        let colorize = match color_mode {
+            "auto" => Ok(atty::is(atty::Stream::Stdout)),
+            "never" => Ok(false),
+            "always" => Ok(true),
+            _ => Err(ParseError::ColorParseFailed),
+        }?;
+        Ok(Opt {
             lines: value_t!(matches, "lines", u64).unwrap_or_else(|e| e.exit()),
             recursive: matches.is_present("recursive"),
             depth: value_t!(matches.value_of("depth"), usize)
@@ -114,8 +130,8 @@ impl Opt {
                 .value_of_os("path")
                 .map(PathBuf::from)
                 .or_else(|| matches.value_of_os("PATH").map(PathBuf::from)),
-            colorize: matches.is_present("color"),
-        }
+            colorize,
+        })
     }
 
     pub fn recursive_mode(self: &Opt) -> RecursiveMode {
