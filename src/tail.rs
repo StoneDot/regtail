@@ -141,10 +141,10 @@ where
 }
 
 impl<K, T, C> SeekPos for TransparentReader<K, T, C>
-    where
-        K: Hash + Eq + Clone,
-        T: Read + Seek + Length,
-        C: ReaderCreator<K, T>,
+where
+    K: Hash + Eq + Clone,
+    T: Read + Seek + Length,
+    C: ReaderCreator<K, T>,
 {
     fn seek_pos(&self) -> u64 {
         self.reader_seek_pos
@@ -415,7 +415,9 @@ line5"#;
     }
 
     impl SeekPos for Cursor<&[u8]> {
-        fn seek_pos(&self) -> u64 { self.get_ref().len() as u64 }
+        fn seek_pos(&self) -> u64 {
+            self.get_ref().len() as u64
+        }
     }
 
     impl TailState<Cursor<&[u8]>, &mut Vec<u8>> {
