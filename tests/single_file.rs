@@ -136,6 +136,32 @@ test!(multi_byte_file_name, |dir: WorkingDir, mut cmd: Command| {
     );
 });
 
+test!(binary_zero_file, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("binfile", "This is binary\0yeah!");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_not_contains!(output, "binfile");
+    assert_not_contains!(output, "This is binary");
+    assert_not_contains!(output, "yeah!");
+});
+
+test!(show_binary_file, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_file("binfile", "This is binary\0yeah!");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg("--show-binary").arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_contains!(output, "binfile");
+    assert_contains!(output, "This is binary");
+    assert_contains!(output, "yeah!");
+});
+
 test!(filtered, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("file", "not shown");
     sleep(WAIT_TIME);

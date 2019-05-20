@@ -14,16 +14,22 @@
  * limitations under the License.
  */
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use ansi_term::Colour::{Blue, Green};
+use content_inspector::inspect;
 use regex::Regex;
 use walkdir::{DirEntry, WalkDir};
 
 use super::Opt;
+use std::fs::File;
+use std::io::Read;
+
+const MAX_BUFFER_SIZE: usize = 1024;
 
 pub struct PathFilter {
     regex: Regex,
+    filter_binary: bool,
 }
 
 impl PathFilter {
@@ -47,7 +53,10 @@ impl PathFilter {
             },
         };
 
-        Ok(PathFilter { regex })
+        Ok(PathFilter {
+            regex,
+            filter_binary: !opt.show_binary,
+        })
     }
 
     fn generate_filter_regex(opt: &Opt) -> Result<Regex, regex::Error> {
@@ -87,6 +96,22 @@ impl PathFilter {
                     Some(path.to_owned())
                 } else {
                     None
+                }
+            })
+            .filter(move |path: &PathBuf| {
+                if self.filter_binary {
+                    let mut file = match File::open(path) {
+                        Ok(file) => file,
+                        Err(_) => return false,
+                    };
+                    let mut buf = [0u8; MAX_BUFFER_SIZE];
+                    let inspect_buf = match file.read(&mut buf) {
+                        Ok(size) => &buf[0..size],
+                        Err(_) => return false,
+                    };
+                    !inspect(inspect_buf).is_binary()
+                } else {
+                    true
                 }
             })
     }

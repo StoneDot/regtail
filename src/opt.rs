@@ -27,6 +27,7 @@ lazy_static! {
 pub struct Opt {
     pub lines: u64,
     pub recursive: bool,
+    pub show_binary: bool,
     depth: Option<usize>,
     pub regex: Option<String>,
     path: Option<PathBuf>,
@@ -45,6 +46,11 @@ impl Opt {
                     .short("r")
                     .long("recursive")
                     .help("Enable recursive watch"),
+            )
+            .arg(
+                Arg::with_name("show-binary")
+                    .long("show-binary")
+                    .help("Enable binary tailing"),
             )
             .arg(
                 Arg::with_name("regex")
@@ -113,6 +119,7 @@ impl Opt {
         Ok(Opt {
             lines: value_t!(matches, "lines", u64).unwrap_or_else(|e| e.exit()),
             recursive: matches.is_present("recursive"),
+            show_binary: matches.is_present("show-binary"),
             depth: value_t!(matches.value_of("depth"), usize)
                 .map(Some)
                 .unwrap_or_else(|e| {
