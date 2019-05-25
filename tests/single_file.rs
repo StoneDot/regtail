@@ -152,7 +152,12 @@ test!(binary_zero_file, |dir: WorkingDir, mut cmd: Command| {
 test!(show_binary_file, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("binfile", "This is binary\0yeah!");
     sleep(WAIT_TIME);
-    let mut child = RunningCommand::create(cmd.arg("--show-binary").arg(dir.path_arg()).spawn().unwrap());
+    let mut child = RunningCommand::create(
+        cmd.arg("--show-binary")
+            .arg(dir.path_arg())
+            .spawn()
+            .unwrap(),
+    );
     sleep(WAIT_TIME);
     let result = child.exit();
     assert_eq!(result, KillStatus::Killed);

@@ -17,19 +17,47 @@
 use std::path::{Path, PathBuf};
 
 use ansi_term::Colour::{Blue, Green};
-use content_inspector::inspect;
+use content_inspector::{inspect, ContentType};
 use regex::Regex;
 use walkdir::{DirEntry, WalkDir};
 
 use super::Opt;
 use std::fs::File;
 use std::io::Read;
+use std::str::from_utf8;
 
 const MAX_BUFFER_SIZE: usize = 1024;
 
 pub struct PathFilter {
     regex: Regex,
     filter_binary: bool,
+}
+
+fn is_text(path: &Path) -> bool {
+    let mut file = match File::open(path) {
+        Ok(file) => file,
+        Err(_) => return false,
+    };
+    let mut buf = [0u8; MAX_BUFFER_SIZE];
+    let inspect_buf = match file.read(&mut buf) {
+        Ok(size) => &buf[0..size],
+        Err(_) => return false,
+    };
+    let file_type = inspect(inspect_buf);
+    match file_type {
+        ContentType::BINARY => false,
+        ContentType::UTF_8 | ContentType::UTF_8_BOM => match from_utf8(inspect_buf) {
+            Ok(_) => true,
+            Err(e) => e.error_len().is_none(),
+        },
+        ContentType::UTF_16BE
+        | ContentType::UTF_16LE
+        | ContentType::UTF_32BE
+        | ContentType::UTF_32LE => {
+            // TODO: Need validation, currently not implemented
+            true
+        }
+    }
 }
 
 impl PathFilter {
@@ -100,16 +128,7 @@ impl PathFilter {
             })
             .filter(move |path: &PathBuf| {
                 if self.filter_binary {
-                    let mut file = match File::open(path) {
-                        Ok(file) => file,
-                        Err(_) => return false,
-                    };
-                    let mut buf = [0u8; MAX_BUFFER_SIZE];
-                    let inspect_buf = match file.read(&mut buf) {
-                        Ok(size) => &buf[0..size],
-                        Err(_) => return false,
-                    };
-                    !inspect(inspect_buf).is_binary()
+                    is_text(path)
                 } else {
                     true
                 }
