@@ -149,8 +149,22 @@ test!(binary_zero_file, |dir: WorkingDir, mut cmd: Command| {
     assert_not_contains!(output, "yeah!");
 });
 
+test!(binary_non_zero_file, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_binary_file("binfile", b"This is\xa0binary\x88yeah!");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_not_contains!(output, "binfile");
+    assert_not_contains!(output, "This is");
+    assert_not_contains!(output, "binary");
+    assert_not_contains!(output, "yeah!");
+});
+
 test!(show_binary_file, |dir: WorkingDir, mut cmd: Command| {
-    dir.put_file("binfile", "This is binary\0yeah!");
+    dir.put_file("binfile", "This is not binary\0yeah!");
     sleep(WAIT_TIME);
     let mut child = RunningCommand::create(
         cmd.arg("--show-binary")
@@ -163,7 +177,25 @@ test!(show_binary_file, |dir: WorkingDir, mut cmd: Command| {
     assert_eq!(result, KillStatus::Killed);
     let output = child.output();
     assert_contains!(output, "binfile");
-    assert_contains!(output, "This is binary");
+    assert_contains!(output, "This is not binary");
+    assert_contains!(output, "yeah!");
+});
+
+test!(show_utf8_bom_file, |dir: WorkingDir, mut cmd: Command| {
+    dir.put_binary_file("binfile", b"\xef\xbb\xbfThis is not binary\nyeah!");
+    sleep(WAIT_TIME);
+    let mut child = RunningCommand::create(
+        cmd.arg("--show-binary")
+            .arg(dir.path_arg())
+            .spawn()
+            .unwrap(),
+    );
+    sleep(WAIT_TIME);
+    let result = child.exit();
+    assert_eq!(result, KillStatus::Killed);
+    let output = child.output();
+    assert_contains!(output, "binfile");
+    assert_contains!(output, "This is not binary");
     assert_contains!(output, "yeah!");
 });
 
