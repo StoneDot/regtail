@@ -45,7 +45,7 @@ impl WorkingDir {
     }
 
     #[allow(dead_code)]
-    pub fn put_file(self: &Self, relative_path: &str, content: &str) {
+    pub fn put_file<T: AsRef<[u8]>>(self: &Self, relative_path: &str, content: T) {
         let mut new_file_path = self.parent_path.clone();
         new_file_path.push(relative_path);
         if let Some(parent_dir) = new_file_path.parent() {
@@ -55,20 +55,6 @@ impl WorkingDir {
         let mut fh = File::create(new_file_path)
             .expect(format!("Failed to open '{}'", file_path_str).as_ref());
         fh.write_all(content.as_ref()).expect("Cannot put file");
-        fh.sync_all().expect("Failed to sync");
-    }
-
-    #[allow(dead_code)]
-    pub fn put_binary_file(&self, relative_path: &str, content: &[u8]) {
-        let mut new_file_path = self.parent_path.clone();
-        new_file_path.push(relative_path);
-        if let Some(parent_dir) = new_file_path.parent() {
-            let _ = fs::create_dir_all(parent_dir);
-        }
-        let file_path_str = new_file_path.display().to_string();
-        let mut fh = File::create(new_file_path)
-            .expect(format!("Failed to open '{}'", file_path_str).as_ref());
-        fh.write_all(content).expect("Cannot put file");
         fh.sync_all().expect("Failed to sync");
     }
 

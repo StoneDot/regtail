@@ -150,7 +150,7 @@ test!(binary_zero_file, |dir: WorkingDir, mut cmd: Command| {
 });
 
 test!(binary_non_zero_file, |dir: WorkingDir, mut cmd: Command| {
-    dir.put_binary_file("binfile", b"This is\xa0binary\x88yeah!");
+    dir.put_file("binfile", b"This is\xa0binary\x88yeah!");
     sleep(WAIT_TIME);
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
     sleep(WAIT_TIME);
@@ -182,7 +182,7 @@ test!(show_binary_file, |dir: WorkingDir, mut cmd: Command| {
 });
 
 test!(show_utf8_bom_file, |dir: WorkingDir, mut cmd: Command| {
-    dir.put_binary_file("binfile", b"\xef\xbb\xbfThis is not binary\nyeah!");
+    dir.put_file("binfile", b"\xef\xbb\xbfThis is not binary\nyeah!");
     sleep(WAIT_TIME);
     let mut child = RunningCommand::create(
         cmd.arg("--show-binary")
