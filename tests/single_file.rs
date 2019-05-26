@@ -136,7 +136,7 @@ test!(multi_byte_file_name, |dir: WorkingDir, mut cmd: Command| {
     );
 });
 
-test!(binary_zero_file, |dir: WorkingDir, mut cmd: Command| {
+test!(binary_contains_zero, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("binfile", "This is binary\0yeah!");
     sleep(WAIT_TIME);
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
@@ -149,7 +149,7 @@ test!(binary_zero_file, |dir: WorkingDir, mut cmd: Command| {
     assert_not_contains!(output, "yeah!");
 });
 
-test!(binary_non_zero_file, |dir: WorkingDir, mut cmd: Command| {
+test!(binary_file, |dir: WorkingDir, mut cmd: Command| {
     dir.put_file("binfile", b"This is\xa0binary\x88yeah!");
     sleep(WAIT_TIME);
     let mut child = RunningCommand::create(cmd.arg(dir.path_arg()).spawn().unwrap());
