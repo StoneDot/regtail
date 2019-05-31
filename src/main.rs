@@ -17,6 +17,7 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate lru;
+extern crate pancurses;
 
 #[macro_use]
 extern crate clap;

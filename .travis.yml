@@ -36,9 +36,15 @@ matrix:
           update: true
           packages:
             - gcc-multilib
+            - libtinfo-dev
     - os: linux
       rust: stable
       env: TARGET=x86_64-unknown-linux-musl
+      addons:
+        apt:
+          update: true
+          packages:
+            - libtinfo-dev
     - os: linux
       rust: stable
       env: TARGET=i686-unknown-linux-musl
@@ -51,6 +57,7 @@ matrix:
           packages:
             - libc6-dev-arm64-cross
             - gcc-aarch64-linux-gnu
+            - libtinfo-dev
     - os: linux
       rust: stable
       env: TARGET=arm-unknown-linux-gnueabihf NO_TEST=1 LINKER="arm-linux-gnueabihf-gcc" AR="arm-linux-gnueabihf-ar"
@@ -60,6 +67,7 @@ matrix:
           packages:
             - libc6-dev-armhf-cross
             - gcc-arm-linux-gnueabihf
+            - libtinfo-dev
 install:
   - set | egrep '^TARGET' || TARGET=$(rustup target list | grep installed | awk '{print $1}')
   - rustup target add ${TARGET}

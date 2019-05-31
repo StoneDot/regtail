@@ -11,6 +11,10 @@ Regex base tail written in Rust.
 * [Installation](#installation)
 * [Development](#development)
 
+# Requirements
+* libncurses.so.6
+* libtinfo.so.6
+
 # Why regtail?
 `tail -F` is very common way to monitor log files.
 Although it requires specify the monitored files before it's launched as below.
