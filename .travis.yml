@@ -30,6 +30,7 @@ matrix:
       rust: nightly
     - os: linux
       rust: stable
+      dist: xenial
       env: TARGET=i686-unknown-linux-gnu
       addons:
         apt:
@@ -39,6 +40,7 @@ matrix:
             - libtinfo-dev
     - os: linux
       rust: stable
+      dist: xenial
       env: TARGET=x86_64-unknown-linux-musl
       addons:
         apt:
@@ -47,9 +49,11 @@ matrix:
             - libtinfo-dev
     - os: linux
       rust: stable
+      dist: xenial
       env: TARGET=i686-unknown-linux-musl
     - os: linux
       rust: stable
+      dist: xenial
       env: TARGET=aarch64-unknown-linux-gnu NO_TEST=1 LINKER="aarch64-linux-gnu-gcc" AR="aarch64-linux-gnu-ar"
       addons:
         apt:
@@ -60,6 +64,7 @@ matrix:
             - libtinfo-dev
     - os: linux
       rust: stable
+      dist: xenial
       env: TARGET=arm-unknown-linux-gnueabihf NO_TEST=1 LINKER="arm-linux-gnueabihf-gcc" AR="arm-linux-gnueabihf-ar"
       addons:
         apt:
