@@ -82,6 +82,7 @@ fabric.properties
 # Idea copyright
 .idea/copyright
 
-/target
-**/*.rs.bk
+/target/*
+!/target/criterion/
 /integration_tests
+/benchmarks

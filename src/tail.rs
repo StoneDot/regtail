@@ -18,7 +18,7 @@ use std::cell::RefCell;
 use std::cmp::max;
 use std::fs::File;
 use std::hash::Hash;
-use std::io::{self, Read, Result, Seek, SeekFrom, Stdout, Write};
+use std::io::{self, Read, Result, Seek, SeekFrom, Stdout, Write, sink, Sink};
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
 
@@ -44,7 +44,6 @@ impl ReaderCreator<PathBuf, File> for FileCreator {
         File::open(path)
     }
 }
-
 pub struct TransparentReader<K, T, C>
 where
     K: Hash + Eq + Clone,
@@ -204,6 +203,59 @@ impl CachedTailState {
             printed_eol: false,
         })
     }
+}
+
+pub struct DirectFileReader {
+    file: File,
+    reader_seek_pos: u64,
+}
+
+impl DirectFileReader {
+    #[allow(dead_code)]
+    pub fn new(path: &PathBuf) -> io::Result<DirectFileReader> {
+        let file = File::open(path)?;
+        Ok(DirectFileReader {
+            file,
+            reader_seek_pos: 0,
+        })
+    }
+}
+
+impl Read for DirectFileReader {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+        let size = self.file.read(buf)?;
+        self.reader_seek_pos += size as u64;
+        Ok(size)
+    }
+}
+
+impl Seek for DirectFileReader {
+    fn seek(&mut self, pos: SeekFrom) -> Result<u64> {
+        let seek_pos = self.file.seek(pos)?;
+        self.reader_seek_pos = seek_pos;
+        Ok(seek_pos)
+    }
+}
+
+impl SeekPos for DirectFileReader {
+    fn seek_pos(&self) -> u64 {
+        self.reader_seek_pos
+    }
+}
+
+impl Length for DirectFileReader {
+    fn len(self: &Self) -> Result<u64> {
+        Ok(self.file.metadata()?.len())
+    }
+}
+
+#[allow(dead_code)]
+pub fn from_file_to_sink(path: &PathBuf) -> io::Result<TailState<DirectFileReader, Sink>> {
+    Ok(TailState {
+        reader: DirectFileReader::new(path)?,
+        writer: sink(),
+        printed_eol: false,
+    })
 }
 
 impl<T, U> TailState<T, U>
@@ -369,7 +421,7 @@ where
     }
 }
 
-fn tail_from_reader<T, U>(reader: &mut TailState<T, U>, tail_count: u64) -> Result<u64>
+pub fn tail_from_reader<T, U>(reader: &mut TailState<T, U>, tail_count: u64) -> Result<u64>
 where
     T: Read + Seek + SeekPos + Length,
     U: Write,

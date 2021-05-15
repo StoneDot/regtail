@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#[warn(unused_macros)]
 macro_rules! test {
     ($test_name:ident, $test_code:expr) => {
         #[test]

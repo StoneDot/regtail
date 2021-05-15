@@ -100,3 +100,11 @@ cd regtail-0.1.0
 cargo install --root $HOME --path .
 export PATH="$HOME/bin:$PATH"
 ```
+
+## Benchmark
+```shell
+$ sudo -s
+# On your root session type below
+# CAUTION: Internally, 
+$ cargo bench
+```
