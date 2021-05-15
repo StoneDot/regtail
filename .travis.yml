@@ -31,7 +31,7 @@ matrix:
       env: TARGET=i686-unknown-linux-musl
     - os: osx
       rust: stable
-      env: TARGET=i686-apple-darwin
+      env: TARGET=aarch64-apple-darwin
     - os: linux
       rust: stable
       env: TARGET=aarch64-unknown-linux-gnu NO_TEST=1 LINKER="aarch64-linux-gnu-gcc" AR="aarch64-linux-gnu-ar"
