@@ -21,10 +21,10 @@ rand = "0.8"
 rand_xorshift = "0.3.0"
 criterion = "0.3"
 
-[target.'cfg(unix)'.dependencies]
+[target.'cfg(linux)'.dependencies]
 nix = "0.20"
 
-[target.'cfg(unix)'.dev-dependencies]
+[target.'cfg(linux)'.dev-dependencies]
 procfs =  { git = "https://github.com/eminence/procfs.git" }
 
 [[bench]]
