@@ -51,7 +51,7 @@ matrix:
             - libc6-dev-armhf-cross
             - gcc-arm-linux-gnueabihf
 install:
-  - set | egrep '^TARGET' || TARGET=$(rustup target list | grep default | awk '{print $1}')
+  - set | egrep '^TARGET' || TARGET=$(rustup target list | grep installed | awk '{print $1}')
   - rustup target add ${TARGET}
 script:
   - test -n "${NO_TEST}" || RUST_BACKTRACE=1 cargo test --verbose --all --target ${TARGET}
