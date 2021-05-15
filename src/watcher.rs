@@ -133,7 +133,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
             for path in pending_delete_files.iter() {
                 {
                     let mut repo = (*self.repository).borrow_mut();
-                    repo.pop(&path);
+                    repo.pop(path);
                 }
                 if let Some(reader) = self.file_map.remove(path) {
                     self.unsubscribe_select_file(path, &reader);
