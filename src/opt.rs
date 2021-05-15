@@ -21,7 +21,7 @@ use clap::{self, Arg};
 use notify::RecursiveMode;
 
 lazy_static! {
-    static ref CURRENT_DIR: PathBuf = { PathBuf::from_str(".").unwrap() };
+    static ref CURRENT_DIR: PathBuf = PathBuf::from_str(".").unwrap();
 }
 
 pub struct Opt {
