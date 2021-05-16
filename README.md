@@ -3,11 +3,13 @@ Regex base tail written in Rust.
 
 [![Build Status](https://travis-ci.org/StoneDot/regtail.svg?branch=master)](https://travis-ci.org/StoneDot/regtail)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
 ## Documentation quick links
 
 * [Why regtail?](#why-regtail)
 * [Installation](#installation)
+* [Development](#development)
 
 # Why regtail?
 `tail -F` is very common way to monitor log files.
@@ -75,14 +77,14 @@ This is error.20190101
 
 Regtail is the perfect way to monitor your log files in all situation, isn't it?
 
-## Installation
-### Homebrew
+# Installation
+## Homebrew
 ```bash
 brew tap StoneDot/regtail
 brew install regtail
 ```
 
-### Binary
+## Binary
 ```bash
 # Linux x86_64
 wget https://github.com/StoneDot/regtail/releases/download/v0.1.0/regtail-v0.1.0-x86_64-unknown-linux-gnu.tar.gz
@@ -91,7 +93,7 @@ cd regtail-v0.1.0-x86_64-unknown-linux-gnu
 sudo cp regtail /usr/local/bin
 ```
 
-### Source build
+## Source build
 ```bash
 wget https://github.com/StoneDot/regtail/archive/v0.1.0.tar.gz
 tar zxf v0.1.0.tar.gz
@@ -100,10 +102,20 @@ cargo install --root $HOME --path .
 export PATH="$HOME/bin:$PATH"
 ```
 
-## Benchmark
+# Benchmark
 ```shell
 $ sudo -s
 # On your root session type below
-# CAUTION: Internally, 
+# CAUTION: Internally,
 $ cargo bench
+```
+
+# Development
+We use git pre-commit hook to ensure that the code is well formatted and clippy does not raise warning.
+You should follow below instructions before starting development.
+
+```shell
+# Install the pre-commit framework
+# See: https://pre-commit.com/
+$ pre-commit install
 ```
