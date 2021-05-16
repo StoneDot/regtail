@@ -5,7 +5,7 @@ authors = ["Hiroaki Goto <goto.inct@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-ansi_term = "0.11"
+ansi_term = "0.12"
 notify = "4.0"
 walkdir = "2"
 regex = "1"
