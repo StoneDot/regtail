@@ -78,7 +78,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
 }
 
 impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
-    fn print_normalized_path(&self, path: &PathBuf) {
+    fn print_normalized_path(&self, path: &Path) {
         let relative_path = path.to_string_lossy();
         let display_path = relative_path.trim_start_matches("./");
 
@@ -107,7 +107,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         canonical_path
     }
 
-    fn canonicalize_path(path: &PathBuf) -> io::Result<PathBuf> {
+    fn canonicalize_path(path: &Path) -> io::Result<PathBuf> {
         let canonical_path = path.canonicalize()?;
         Ok(Self::normalize_path_for_windows(canonical_path))
     }
@@ -143,7 +143,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         }
     }
 
-    fn print_file_path(&self, path: &PathBuf) {
+    fn print_file_path(&self, path: &Path) {
         let mut preceding = "\n";
         if let Some(selected_file_path) = &self.selected_file_path {
             if let Some(selected_file) = self.file_map.get(selected_file_path) {
@@ -165,7 +165,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         self.print_normalized_path(path);
     }
 
-    fn unsubscribe_select_file(&mut self, path: &PathBuf, reader: &CachedTailState) {
+    fn unsubscribe_select_file(&mut self, path: &Path, reader: &CachedTailState) {
         if let Some(selected_file_path) = &self.selected_file_path {
             if selected_file_path == path {
                 if !reader.printed_eol() {
@@ -177,7 +177,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         }
     }
 
-    fn change_selected_file(&mut self, path: &PathBuf) {
+    fn change_selected_file(&mut self, path: &Path) {
         // Handle current path change
         if let Some(last_path) = &self.selected_file_path {
             if last_path != path {
@@ -191,7 +191,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         }
     }
 
-    fn handle_write(self: &mut Self, path: PathBuf) -> std::io::Result<()> {
+    fn handle_write(&mut self, path: PathBuf) -> std::io::Result<()> {
         // Just ignore if the path is not match regex
         if !self.filter.match_path(&path) {
             return Ok(());

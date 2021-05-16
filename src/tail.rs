@@ -19,7 +19,7 @@ use std::cmp::max;
 use std::fs::File;
 use std::hash::Hash;
 use std::io::{self, Read, Result, Seek, SeekFrom, Stdout, Write, sink, Sink};
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::rc::{Rc, Weak};
 
 use lru::LruCache;
@@ -212,7 +212,7 @@ pub struct DirectFileReader {
 
 impl DirectFileReader {
     #[allow(dead_code)]
-    pub fn new(path: &PathBuf) -> io::Result<DirectFileReader> {
+    pub fn new(path: &Path) -> io::Result<DirectFileReader> {
         let file = File::open(path)?;
         Ok(DirectFileReader {
             file,
@@ -250,7 +250,7 @@ impl Length for DirectFileReader {
 }
 
 #[allow(dead_code)]
-pub fn from_file_to_sink(path: &PathBuf) -> io::Result<TailState<DirectFileReader, Sink>> {
+pub fn from_file_to_sink(path: &Path) -> io::Result<TailState<DirectFileReader, Sink>> {
     Ok(TailState {
         reader: DirectFileReader::new(path)?,
         writer: sink(),
