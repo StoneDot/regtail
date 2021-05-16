@@ -34,13 +34,13 @@ pub type FileReader = TransparentReader<PathBuf, File, FileCreator>;
 pub type CachedTailState = TailState<FileReader, io::BufWriter<Stdout>>;
 
 pub trait ReaderCreator<K, T> {
-    fn create_reader(self: &Self, path: &K) -> Result<T>;
+    fn create_reader(&self, path: &K) -> Result<T>;
 }
 
 pub struct FileCreator;
 
 impl ReaderCreator<PathBuf, File> for FileCreator {
-    fn create_reader(self: &Self, path: &PathBuf) -> Result<File> {
+    fn create_reader(&self, path: &PathBuf) -> Result<File> {
         File::open(path)
     }
 }
@@ -63,7 +63,7 @@ where
     T: Read + Seek + Length,
     C: ReaderCreator<K, T>,
 {
-    fn reader(self: &Self) -> Result<Rc<RefCell<T>>> {
+    fn reader(&self) -> Result<Rc<RefCell<T>>> {
         let mut reader_cache = self.reader_cache.borrow_mut();
         let reader = reader_cache.upgrade();
         if let Some(x) = reader {
@@ -132,7 +132,7 @@ where
     T: Read + Seek + Length,
     C: ReaderCreator<K, T>,
 {
-    fn len(self: &Self) -> Result<u64> {
+    fn len(&self) -> Result<u64> {
         let rc_reader = self.reader()?;
         let reader = (*rc_reader).borrow_mut();
         reader.len()
@@ -166,7 +166,7 @@ impl TransparentReader<PathBuf, File, FileCreator> {
 }
 
 pub trait Length {
-    fn len(self: &Self) -> Result<u64>;
+    fn len(&self) -> Result<u64>;
 }
 
 pub trait SeekPos {
@@ -174,7 +174,7 @@ pub trait SeekPos {
 }
 
 impl Length for File {
-    fn len(self: &Self) -> Result<u64> {
+    fn len(&self) -> Result<u64> {
         Ok(self.metadata()?.len())
     }
 }
@@ -244,7 +244,7 @@ impl SeekPos for DirectFileReader {
 }
 
 impl Length for DirectFileReader {
-    fn len(self: &Self) -> Result<u64> {
+    fn len(&self) -> Result<u64> {
         Ok(self.file.metadata()?.len())
     }
 }
@@ -275,23 +275,23 @@ where
         self.writer.flush()
     }
 
-    pub fn seek(self: &mut Self, seek: SeekFrom) -> Result<u64> {
+    pub fn seek(&mut self, seek: SeekFrom) -> Result<u64> {
         self.reader.seek(seek)
     }
 
-    pub fn current_seek(self: &Self) -> u64 {
+    pub fn current_seek(&self) -> u64 {
         self.reader.seek_pos()
     }
 
-    pub fn len(self: &Self) -> Result<u64> {
+    pub fn len(&self) -> Result<u64> {
         self.reader.len()
     }
 
-    pub fn printed_eol(self: &Self) -> bool {
+    pub fn printed_eol(&self) -> bool {
         self.printed_eol
     }
 
-    fn tail_start_position(self: &mut Self, tail_count: u64) -> Result<u64> {
+    fn tail_start_position(&mut self, tail_count: u64) -> Result<u64> {
         let mut buffer = [0u8; BUFFER_SIZE];
 
         // Read file from tail requires file size
@@ -360,7 +360,7 @@ where
         }
     }
 
-    pub fn handle_shrink(self: &mut Self, offset: u64) -> Result<bool> {
+    pub fn handle_shrink(&mut self, offset: u64) -> Result<bool> {
         let len = self.len()?;
         if len < offset {
             self.seek(SeekFrom::Start(0))?;
@@ -370,7 +370,7 @@ where
         }
     }
 
-    fn seek_with_shrink_handling(self: &mut Self, offset: u64) -> Result<u64> {
+    fn seek_with_shrink_handling(&mut self, offset: u64) -> Result<u64> {
         // Shrink handling
         if self.handle_shrink(offset)? {
             return Ok(0);
@@ -380,7 +380,7 @@ where
         self.seek(SeekFrom::Start(offset))
     }
 
-    pub fn dump_to_tail(self: &mut Self) -> Result<u64> {
+    pub fn dump_to_tail(&mut self) -> Result<u64> {
         let mut buffer = [0; BUFFER_SIZE];
         let mut offset = self.current_seek();
         let initial_size = (BUFFER_LEN - (offset % BUFFER_LEN)) as usize;

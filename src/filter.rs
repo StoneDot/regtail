@@ -135,7 +135,7 @@ impl PathFilter {
             })
     }
 
-    pub fn print_path_with_color(self: &Self, path: &str) {
+    pub fn print_path_with_color(&self, path: &str) {
         let mut prev_end_point = 0;
         for m in self.regex.find_iter(path) {
             let prev_str = &path[prev_end_point..m.start()];

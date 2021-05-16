@@ -78,7 +78,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
 }
 
 impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
-    fn print_normalized_path(self: &Self, path: &PathBuf) {
+    fn print_normalized_path(&self, path: &PathBuf) {
         let relative_path = path.to_string_lossy();
         let display_path = relative_path.trim_start_matches("./");
 
@@ -121,7 +121,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         false
     }
 
-    fn handle_pending_delete(self: &mut Self, pending_delete_files: &mut VecDeque<PathBuf>) {
+    fn handle_pending_delete(&mut self, pending_delete_files: &mut VecDeque<PathBuf>) {
         // On Windows, try to detect pending delete files
         if cfg!(target_os = "windows") {
             for path in self.file_map.keys() {
@@ -143,7 +143,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         }
     }
 
-    fn print_file_path(self: &Self, path: &PathBuf) {
+    fn print_file_path(&self, path: &PathBuf) {
         let mut preceding = "\n";
         if let Some(selected_file_path) = &self.selected_file_path {
             if let Some(selected_file) = self.file_map.get(selected_file_path) {
@@ -165,7 +165,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         self.print_normalized_path(path);
     }
 
-    fn unsubscribe_select_file(self: &mut Self, path: &PathBuf, reader: &CachedTailState) {
+    fn unsubscribe_select_file(&mut self, path: &PathBuf, reader: &CachedTailState) {
         if let Some(selected_file_path) = &self.selected_file_path {
             if selected_file_path == path {
                 if !reader.printed_eol() {
@@ -177,7 +177,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         }
     }
 
-    fn change_selected_file(self: &mut Self, path: &PathBuf) {
+    fn change_selected_file(&mut self, path: &PathBuf) {
         // Handle current path change
         if let Some(last_path) = &self.selected_file_path {
             if last_path != path {
@@ -223,7 +223,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
     }
 
     #[allow(clippy::single_match)]
-    fn handle_rename(self: &mut Self, path: PathBuf, cookie: Option<u32>) {
+    fn handle_rename(&mut self, path: PathBuf, cookie: Option<u32>) {
         if let Some(cookie) = cookie {
             match self.renaming_map.remove(&cookie) {
                 Some(file) => match file {
@@ -257,7 +257,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         }
     }
 
-    fn handle_remove(self: &mut Self, path: &PathBuf) {
+    fn handle_remove(&mut self, path: &PathBuf) {
         if let Some(reader) = self.file_map.remove(path) {
             {
                 let mut repo = (*self.repository).borrow_mut();
@@ -267,7 +267,7 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         }
     }
 
-    pub fn follow_dir(self: &mut Self, opt: &Opt) -> Result<(), NotifyError> {
+    pub fn follow_dir(&mut self, opt: &Opt) -> Result<(), NotifyError> {
         // Empty tailing consideration
         if opt.lines == 0 {
             for path in self.filter.filtered_files(&opt) {
