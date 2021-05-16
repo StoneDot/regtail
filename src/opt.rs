@@ -106,10 +106,7 @@ impl Opt {
                     .help("Colorize mode"),
             )
             .get_matches();
-        let color_mode = match matches.value_of("color") {
-            Some(mode) => mode,
-            None => "auto",
-        };
+        let color_mode = matches.value_of("color").unwrap_or("auto");
         let colorize = match color_mode {
             "auto" => Ok(atty::is(atty::Stream::Stdout)),
             "never" => Ok(false),
