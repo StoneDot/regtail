@@ -165,6 +165,8 @@ impl TransparentReader<PathBuf, File, FileCreator> {
     }
 }
 
+// Allow lack of is_empty function because of len returns Result type
+#[allow(clippy::len_without_is_empty)]
 pub trait Length {
     fn len(&self) -> Result<u64>;
 }
@@ -258,6 +260,8 @@ pub fn from_file_to_sink(path: &Path) -> io::Result<TailState<DirectFileReader, 
     })
 }
 
+// Allow lack of is_empty function because of len returns Result type
+#[allow(clippy::len_without_is_empty)]
 impl<T, U> TailState<T, U>
 where
     T: Read + Seek + SeekPos + Length,

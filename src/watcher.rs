@@ -257,6 +257,8 @@ impl DirectoryWatcher<FileReader, BufWriter<Stdout>> {
         }
     }
 
+    // Allow &PathBuf because of the lack of implicit type conversion
+    #[allow(clippy::ptr_arg)]
     fn handle_remove(&mut self, path: &PathBuf) {
         if let Some(reader) = self.file_map.remove(path) {
             {
