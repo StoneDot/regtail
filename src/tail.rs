@@ -18,8 +18,8 @@ use std::cell::RefCell;
 use std::cmp::max;
 use std::fs::File;
 use std::hash::Hash;
-use std::io::{self, Read, Result, Seek, SeekFrom, Stdout, Write, sink, Sink};
-use std::path::{PathBuf, Path};
+use std::io::{self, sink, Read, Result, Seek, SeekFrom, Sink, Stdout, Write};
+use std::path::{Path, PathBuf};
 use std::rc::{Rc, Weak};
 
 use lru::LruCache;

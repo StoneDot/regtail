@@ -16,17 +16,17 @@
 
 extern crate regtail;
 
-use nix::unistd::{sync};
-use procfs::sys::vm::{drop_caches, DropCache};
 use criterion::{criterion_group, criterion_main, Criterion};
-use std::fs::File;
-use std::io::{BufWriter, Write};
+use nix::unistd::sync;
+use procfs::sys::vm::{drop_caches, DropCache};
 use rand::{Rng, SeedableRng};
 use rand_xorshift::XorShiftRng;
+use regtail::tail::{from_file_to_sink, tail_from_reader};
 use std::cmp::min;
 use std::fs;
+use std::fs::File;
+use std::io::{BufWriter, Write};
 use std::path::PathBuf;
-use regtail::tail::{from_file_to_sink, tail_from_reader};
 
 fn setup_bench(bench_directory: &str) -> PathBuf {
     let dir = PathBuf::from(format!("benchmarks/{}", bench_directory));
@@ -50,17 +50,18 @@ fn write_random(file: &mut File, size: usize, seed: <XorShiftRng as SeedableRng>
             let idx = rng.gen_range(0..CHARSET.len());
             buf[i] = CHARSET[idx];
         }
-        fs.write(&buf[0..size]).expect("Failed to write random string");
+        fs.write(&buf[0..size])
+            .expect("Failed to write random string");
     }
 }
 
 #[allow(dead_code)]
 pub fn put_random_file(path: &PathBuf, size: usize, seed: <XorShiftRng as SeedableRng>::Seed) {
     let file_path_str = path.to_str().unwrap();
-    let mut fh = File::create(path)
-        .expect(format!("Failed to pen '{}", file_path_str).as_ref());
+    let mut fh = File::create(path).expect(format!("Failed to pen '{}", file_path_str).as_ref());
     write_random(&mut fh, size, seed);
-    fh.sync_all().expect(format!("Failed sync of file '{}'", file_path_str).as_ref());
+    fh.sync_all()
+        .expect(format!("Failed sync of file '{}'", file_path_str).as_ref());
 }
 
 #[cfg(target_os = "linux")]
@@ -81,7 +82,9 @@ fn criterion_benchmark(c: &mut Criterion) {
     path.push("file");
 
     // Create 8MB file
-    let seed = [82u8, 45, 71, 2, 135, 83, 121, 11, 44, 188, 87, 121, 96, 241, 192, 224];
+    let seed = [
+        82u8, 45, 71, 2, 135, 83, 121, 11, 44, 188, 87, 121, 96, 241, 192, 224,
+    ];
     put_random_file(&path, 8 * 1024 * 1024, seed);
 
     c.bench_function("big_file_tail", |b| b.iter(|| big_file_tail(&path, LINES)));
