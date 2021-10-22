@@ -86,3 +86,4 @@ fabric.properties
 !/target/criterion/
 /integration_tests
 /benchmarks
+/.idea/codestream.xml
