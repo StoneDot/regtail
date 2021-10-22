@@ -1,7 +1,7 @@
 # regtail
 Regex base tail written in Rust.
 
-[![Build Status](https://travis-ci.org/StoneDot/regtail.svg?branch=master)](https://travis-ci.org/StoneDot/regtail)
+[![Build Status](https://app.travis-ci.com/StoneDot/regtail.svg?branch=main)](https://app.travis-ci.com/StoneDot/regtail)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
