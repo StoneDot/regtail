@@ -19,7 +19,7 @@ content_inspector = "0.2"
 [dev-dependencies]
 rand = "0.8"
 rand_xorshift = "0.3.0"
-criterion = "0.3"
+criterion = "0.4"
 
 [target.'cfg(linux)'.dependencies]
 nix = "0.23"
