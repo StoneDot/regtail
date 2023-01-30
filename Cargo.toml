@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 ansi_term = "0.12"
-notify = "4.0"
+notify = "5.1"
 walkdir = "2"
 regex = "1"
 lazy_static = "1.4.0"
